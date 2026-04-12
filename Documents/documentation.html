@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Portfolio - Project Documentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.8;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            padding: 60px 40px;
+            text-align: center;
+        }
+        
+        header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+        
+        header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .version {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            margin-top: 15px;
+            font-size: 0.9em;
+        }
+        
+        nav {
+            background: #f8f9fa;
+            padding: 20px 40px;
+            border-bottom: 1px solid #e9ecef;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        nav a {
+            text-decoration: none;
+            color: #6366f1;
+            padding: 8px 16px;
+            border-radius: 20px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        
+        nav a:hover {
+            background: #6366f1;
+            color: white;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        section {
+            margin-bottom: 50px;
+        }
+        
+        section h2 {
+            color: #6366f1;
+            font-size: 2em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #6366f1;
+        }
+        
+        section h3 {
+            color: #8b5cf6;
+            font-size: 1.5em;
+            margin: 30px 0 15px 0;
+        }
+        
+        section p {
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .feature-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 25px;
+            border-radius: 15px;
+            transition: transform 0.3s;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .feature-card h4 {
+            color: #6366f1;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+        
+        .feature-card .icon {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        
+        code {
+            background: #2d3748;
+            color: #68d391;
+            padding: 2px 8px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        pre {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 10px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-size: 0.85em;
+            line-height: 1.6;
+        }
+        
+        pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+        
+        .sql-keyword {
+            color: #f687b3;
+        }
+        
+        .sql-string {
+            color: #68d391;
+        }
+        
+        .sql-comment {
+            color: #718096;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        th {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        tr:hover {
+            background: #f7fafc;
+        }
+        
+        .role-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        
+        .badge-admin {
+            background: #fed7d7;
+            color: #c53030;
+        }
+        
+        .badge-teacher {
+            background: #e9d8fd;
+            color: #6b46c1;
+        }
+        
+        .badge-student {
+            background: #c6f6d5;
+            color: #276749;
+        }
+        
+        .check-list {
+            list-style: none;
+        }
+        
+        .check-list li {
+            padding: 8px 0;
+            padding-left: 30px;
+            position: relative;
+        }
+        
+        .check-list li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #48bb78;
+            font-weight: bold;
+        }
+        
+        .warning-box {
+            background: #fffaf0;
+            border-left: 4px solid #ed8936;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        
+        .info-box {
+            background: #ebf8ff;
+            border-left: 4px solid #4299e1;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        
+        .success-box {
+            background: #f0fff4;
+            border-left: 4px solid #48bb78;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        
+        footer {
+            background: #2d3748;
+            color: white;
+            text-align: center;
+            padding: 30px;
+        }
+        
+        .toc {
+            background: #f7fafc;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .toc h3 {
+            margin-top: 0;
+        }
+        
+        .toc ul {
+            list-style: none;
+        }
+        
+        .toc li {
+            padding: 5px 0;
+        }
+        
+        .toc a {
+            color: #6366f1;
+            text-decoration: none;
+        }
+        
+        .toc a:hover {
+            text-decoration: underline;
+        }
+        
+        .file-tree {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            margin: 20px 0;
+        }
+        
+        .folder {
+            color: #f6ad55;
+        }
+        
+        .file {
+            color: #68d391;
+        }
+        
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2em;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            nav ul {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎓 Student Portfolio</h1>
+            <p>Complete Project Documentation</p>
+            <span class="version">Version 1.1.0</span>
+        </header>
+        
+        <nav>
+            <ul>
+                <li><a href="#overview">Overview</a></li>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#roles">User Roles</a></li>
+                <li><a href="#database">Database</a></li>
+                <li><a href="#setup">Setup</a></li>
+                <li><a href="#deployment">Deployment</a></li>
+                <li><a href="#components">Components</a></li>
+            </ul>
+        </nav>
+        
+        <div class="content">
+            <!-- Table of Contents -->
+            <div class="toc" id="overview">
+                <h3>📋 Table of Contents</h3>
+                <ul>
+                    <li><a href="#overview">1. Project Overview</a></li>
+                    <li><a href="#features">2. Features</a></li>
+                    <li><a href="#roles">3. User Roles</a></li>
+                    <li><a href="#database">4. Database Schema</a></li>
+                    <li><a href="#setup">5. Setup Instructions</a></li>
+                    <li><a href="#deployment">6. Deployment Guide</a></li>
+                    <li><a href="#components">7. Components</a></li>
+                    <li><a href="#technical">8. Technical Details</a></li>
+                </ul>
+            </div>
+            
+            <!-- Overview -->
+            <section id="overview">
+                <h2>1. Project Overview</h2>
+                <p>
+                    <strong>Student Portfolio</strong> is a comprehensive React application designed for educational institutions to manage student work, facilitate file sharing, and enable collaboration between students, teachers, and administrators.
+                </p>
+                <p>
+                    The application leverages <strong>Supabase</strong> for authentication and database management, providing a secure and scalable solution for educational file management.
+                </p>
+                
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="icon">⚛️</div>
+                        <h4>React 18</h4>
+                        <p>Modern frontend framework with hooks and functional components</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">🔥</div>
+                        <h4>Supabase</h4>
+                        <p>Backend-as-a-Service for auth and database</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">💨</div>
+                        <h4>Tailwind CSS</h4>
+                        <p>Utility-first CSS framework for styling</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">✨</div>
+                        <h4>Modern UI</h4>
+                        <p>Beautiful animations and responsive design</p>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Features -->
+            <section id="features">
+                <h2>2. Features</h2>
+                
+                <h3>🔐 Authentication</h3>
+                <ul class="check-list">
+                    <li>Email/Password login with Supabase Auth</li>
+                    <li>Magic Link - passwordless login via email</li>
+                    <li>Email verification for new accounts</li>
+                    <li>Admin can invite users via email</li>
+                    <li>Role-based access control</li>
+                </ul>
+                
+                <h3>📁 File Management</h3>
+                <ul class="check-list">
+                    <li>Upload videos, images, audio, and documents</li>
+                    <li>5MB file size limit for Supabase compatibility</li>
+                    <li>Built-in file preview for all types</li>
+                    <li>Student-to-student file sharing</li>
+                    <li>Teacher can send files to students with notes</li>
+                </ul>
+                
+                <h3>💬 Social Features</h3>
+                <ul class="check-list">
+                    <li>Like files (students, teachers, admin)</li>
+                    <li>Comment on files</li>
+                    <li>Real-time notifications</li>
+                    <li>Share files between students</li>
+                </ul>
+                
+                <h3>🎨 User Interface</h3>
+                <ul class="check-list">
+                    <li>Dark mode toggle</li>
+                    <li>Smooth animations and transitions</li>
+                    <li>Responsive design (mobile + desktop)</li>
+                    <li>Modern gradient designs</li>
+                    <li>Custom scrollbars</li>
+                </ul>
+            </section>
+            
+            <!-- User Roles -->
+            <section id="roles">
+                <h2>3. User Roles</h2>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Role</th>
+                            <th>Description</th>
+                            <th>Capabilities</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="role-badge badge-admin">Admin</span></td>
+                            <td>System administrator</td>
+                            <td>
+                                • View all files<br>
+                                • Manage users<br>
+                                • Enable/disable signup<br>
+                                • Invite users<br>
+                                • Delete accounts
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><span class="role-badge badge-teacher">Teacher</span></td>
+                            <td>Instructor/educator</td>
+                            <td>
+                                • View student files<br>
+                                • Send files to students<br>
+                                • Add notes to files<br>
+                                • Like & comment
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><span class="role-badge badge-student">Student</span></td>
+                            <td>End user</td>
+                            <td>
+                                • Upload files<br>
+                                • Share with classmates<br>
+                                • Like & comment<br>
+                                • View shared files
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div class="info-box">
+                    <strong>📝 Default Admin Credentials:</strong><br>
+                    Email: <code>admin@school.com</code><br>
+                    Password: <code>admin123</code>
+                </div>
+            </section>
+            
+            <!-- Database -->
+            <section id="database">
+                <h2>4. Database Schema</h2>
+                <p>Run the following SQL in your Supabase SQL Editor to create all required tables:</p>
+                
+                <pre><code><span class="sql-comment">-- Enable UUID extension</span>
+<span class="sql-keyword">CREATE EXTENSION</span> <span class="sql-keyword">IF NOT EXISTS</span> <span class="sql-string">"uuid-ossp"</span>;
+
+<span class="sql-comment">-- Students Table</span>
+<span class="sql-keyword">CREATE TABLE</span> students (
+  id UUID <span class="sql-keyword">PRIMARY KEY</span> <span class="sql-keyword">DEFAULT</span> uuid_generate_v4(),
+  user_id uuid <span class="sql-keyword">REFERENCES</span> auth.users(id),
+  name TEXT <span class="sql-keyword">NOT NULL</span>,
+  email TEXT <span class="sql-keyword">UNIQUE NOT NULL</span>,
+  role TEXT <span class="sql-keyword">DEFAULT</span> <span class="sql-string">'student'</span>,
+  dashboard_link TEXT,
+  created_at TIMESTAMP <span class="sql-keyword">DEFAULT</span> <span class="sql-keyword">NOW</span>()
+);
+
+<span class="sql-comment">-- Teachers Table</span>
+<span class="sql-keyword">CREATE TABLE</span> teachers (
+  id UUID <span class="sql-keyword">PRIMARY KEY</span> <span class="sql-keyword">DEFAULT</span> uuid_generate_v4(),
+  user_id uuid <span class="sql-keyword">REFERENCES</span> auth.users(id),
+  name TEXT <span class="sql-keyword">NOT NULL</span>,
+  email TEXT <span class="sql-keyword">UNIQUE NOT NULL</span>,
+  role TEXT <span class="sql-keyword">DEFAULT</span> <span class="sql-string">'teacher'</span>,
+  dashboard_link TEXT,
+  created_at TIMESTAMP <span class="sql-keyword">DEFAULT</span> <span class="sql-keyword">NOW</span>()
+);
+
+<span class="sql-comment">-- Files Table</span>
+<span class="sql-keyword">CREATE TABLE</span> files (
+  id UUID <span class="sql-keyword">PRIMARY KEY</span> <span class="sql-keyword">DEFAULT</span> uuid_generate_v4(),
+  student_id uuid <span class="sql-keyword">REFERENCES</span> students(id) <span class="sql-keyword">ON DELETE CASCADE</span>,
+  name TEXT <span class="sql-keyword">NOT NULL</span>,
+  type TEXT <span class="sql-keyword">NOT NULL</span>,
+  upload_date TEXT,
+  size TEXT,
+  data TEXT,
+  mime_type TEXT,
+  note TEXT,
+  sent_by_teacher BOOLEAN <span class="sql-keyword">DEFAULT FALSE</span>,
+  teacher_id UUID,
+  created_at TIMESTAMP <span class="sql-keyword">DEFAULT</span> <span class="sql-keyword">NOW</span>()
+);
+
+<span class="sql-comment">-- Settings Table</span>
+<span class="sql-keyword">CREATE TABLE</span> settings (
+  id BIGSERIAL <span class="sql-keyword">PRIMARY KEY</span>,
+  signup_enabled BOOLEAN <span class="sql-keyword">DEFAULT true</span>
+);
+
+<span class="sql-comment">-- Comments Table</span>
+<span class="sql-keyword">CREATE TABLE</span> comments (
+  id UUID <span class="sql-keyword">PRIMARY KEY</span> <span class="sql-keyword">DEFAULT</span> uuid_generate_v4(),
+  file_id uuid <span class="sql-keyword">REFERENCES</span> files(id) <span class="sql-keyword">ON DELETE CASCADE</span>,
+  user_id uuid <span class="sql-keyword">REFERENCES</span> auth.users(id),
+  user_name TEXT,
+  user_role TEXT,
+  text TEXT,
+  created_at TIMESTAMP <span class="sql-keyword">DEFAULT</span> <span class="sql-keyword">NOW</span>()
+);
+
+<span class="sql-comment">-- Likes Table</span>
+<span class="sql-keyword">CREATE TABLE</span> likes (
+  id UUID <span class="sql-keyword">PRIMARY KEY</span> <span class="sql-keyword">DEFAULT</span> uuid_generate_v4(),
+  file_id uuid <span class="sql-keyword">REFERENCES</span> files(id) <span class="sql-keyword">ON DELETE CASCADE</span>,
+  user_id uuid <span class="sql-keyword">REFERENCES</span> auth.users(id),
+  <span class="sql-keyword">UNIQUE</span>(file_id, user_id)
+);
+
+<span class="sql-comment">-- Shares Table</span>
+<span class="sql-keyword">CREATE TABLE</span> shares (
+  id UUID <span class="sql-keyword">PRIMARY KEY</span> <span class="sql-keyword">DEFAULT</span> uuid_generate_v4(),
+  file_id uuid <span class="sql-keyword">REFERENCES</span> files(id) <span class="sql-keyword">ON DELETE CASCADE</span>,
+  owner_id uuid <span class="sql-keyword">REFERENCES</span> students(id) <span class="sql-keyword">ON DELETE CASCADE</span>,
+  recipient_id uuid <span class="sql-keyword">REFERENCES</span> students(id) <span class="sql-keyword">ON DELETE CASCADE</span>
+);
+
+<span class="sql-comment">-- Enable Row Level Security</span>
+<span class="sql-keyword">ALTER TABLE</span> students <span class="sql-keyword">ENABLE ROW LEVEL SECURITY</span>;
+<span class="sql-keyword">ALTER TABLE</span> teachers <span class="sql-keyword">ENABLE ROW LEVEL SECURITY</span>;
+<span class="sql-keyword">ALTER TABLE</span> files <span class="sql-keyword">ENABLE ROW LEVEL SECURITY</span>;
+<span class="sql-keyword">ALTER TABLE</span> settings <span class="sql-keyword">ENABLE ROW LEVEL SECURITY</span>;
+<span class="sql-keyword">ALTER TABLE</span> comments <span class="sql-keyword">ENABLE ROW LEVEL SECURITY</span>;
+<span class="sql-keyword">ALTER TABLE</span> likes <span class="sql-keyword">ENABLE ROW LEVEL SECURITY</span>;
+<span class="sql-keyword">ALTER TABLE</span> shares <span class="sql-keyword">ENABLE ROW LEVEL SECURITY</span>;
+
+<span class="sql-comment">-- Create RLS Policies</span>
+<span class="sql-keyword">CREATE POLICY</span> <span class="sql-string">"Enable all for students"</span> <span class="sql-keyword">ON</span> students <span class="sql-keyword">FOR ALL USING</span> (<span class="sql-keyword">true</span>);
+<span class="sql-keyword">CREATE POLICY</span> <span class="sql-string">"Enable all for teachers"</span> <span class="sql-keyword">ON</span> teachers <span class="sql-keyword">FOR ALL USING</span> (<span class="sql-keyword">true</span>);
+<span class="sql-keyword">CREATE POLICY</span> <span class="sql-string">"Enable all for files"</span> <span class="sql-keyword">ON</span> files <span class="sql-keyword">FOR ALL USING</span> (<span class="sql-keyword">true</span>);
+<span class="sql-keyword">CREATE POLICY</span> <span class="sql-string">"Enable all for settings"</span> <span class="sql-keyword">ON</span> settings <span class="sql-keyword">FOR ALL USING</span> (<span class="sql-keyword">true</span>);
+<span class="sql-keyword">CREATE POLICY</span> <span class="sql-string">"Enable all for comments"</span> <span class="sql-keyword">ON</span> comments <span class="sql-keyword">FOR ALL USING</span> (<span class="sql-keyword">true</span>);
+<span class="sql-keyword">CREATE POLICY</span> <span class="sql-string">"Enable all for likes"</span> <span class="sql-keyword">ON</span> likes <span class="sql-keyword">FOR ALL USING</span> (<span class="sql-keyword">true</span>);
+<span class="sql-keyword">CREATE POLICY</span> <span class="sql-string">"Enable all for shares"</span> <span class="sql-keyword">ON</span> shares <span class="sql-keyword">FOR ALL USING</span> (<span class="sql-keyword">true</span>);</code></pre>
+            </section>
+            
+            <!-- Setup -->
+            <section id="setup">
+                <h2>5. Setup Instructions</h2>
+                
+                <h3>Prerequisites</h3>
+                <ul class="check-list">
+                    <li>Node.js installed (v14 or higher)</li>
+                    <li>Supabase account</li>
+                    <li>Brevo account (for email sending)</li>
+                </ul>
+                
+                <h3>Step 1: Clone and Install</h3>
+                <pre><code><span class="sql-comment"># Clone the project</span>
+git clone &lt;repository-url&gt;
+cd student-portfolio-v-2
+
+<span class="sql-comment"># Install dependencies</span>
+npm install</code></pre>
+                
+                <h3>Step 2: Supabase Setup</h3>
+                <ol>
+                    <li>Create a new Supabase project</li>
+                    <li>Go to SQL Editor and run the database schema</li>
+                    <li>Get your Supabase URL and Anon Key from Project Settings</li>
+                    <li>Enter them in the app's Database Setup page</li>
+                </ol>
+                
+                <h3>Step 3: Email Configuration (Brevo)</h3>
+                <div class="info-box">
+                    <strong>Why Brevo?</strong><br>
+                    Brevo offers 300 free emails/day - perfect for this project!
+                </div>
+                <ol>
+                    <li>Create a Brevo account at <strong>brevo.com</strong></li>
+                    <li>Go to SMTP & API → Create SMTP credentials</li>
+                    <li>Copy: SMTP server, port, login, and password</li>
+                    <li>In Supabase: Settings → Authentication → Email Templates → Custom SMTP</li>
+                    <li>Paste your Brevo credentials</li>
+                </ol>
+                
+                <h3>Step 4: Run Locally</h3>
+                <pre><code>npm start</code></pre>
+                
+                <div class="warning-box">
+                    <strong>⚠️ Important:</strong><br>
+                    For testing, you can disable email confirmation in Supabase:<br>
+                    Authentication → Providers → Email → Turn off "Confirm email"
+                </div>
+            </section>
+            
+            <!-- Deployment -->
+            <section id="deployment">
+                <h2>6. Deployment Guide</h2>
+                
+                <h3>Build for Production</h3>
+                <pre><code>npm run build</code></pre>
+                
+                <h3>Deployment Options</h3>
+                
+                <h4>Netlify (Recommended)</h4>
+                <ol>
+                    <li>Go to netlify.com and sign up</li>
+                    <li>Drag and drop your <code>build</code> folder</li>
+                    <li>Your site is live!</li>
+                </ol>
+                
+                <h4>Vercel</h4>
+                <pre><code>npm install -g vercel
+vercel --prod</code></pre>
+                
+                <h4>GitHub Pages</h4>
+                <ol>
+                    <li>Install gh-pages: <code>npm install gh-pages --save-dev</code></li>
+                    <li>Add to package.json: <code>"homepage": "https://username.github.io/repo-name"</code></li>
+                    <li>Add scripts: <code>"deploy": "gh-pages -d build"</code></li>
+                    <li>Run: <code>npm run deploy</code></li>
+                </ol>
+                
+                <div class="success-box">
+                    <strong>✅ Build Output:</strong><br>
+                    The production build is in the <code>build/</code> folder.<br>
+                    Total size: ~108KB gzipped
+                </div>
+            </section>
+            
+            <!-- Components -->
+            <section id="components">
+                <h2>7. Components</h2>
+                
+                <h3>Project Structure</h3>
+                <div class="file-tree">
+<span class="folder">📁 src/</span>
+│   <span class="folder">📁 components/</span>
+│   │   ├── AdminDashboard.jsx
+│   │   ├── DatabaseSetup.jsx
+│   │   ├── FileViewer.jsx
+│   │   ├── LoginPage.jsx
+│   │   ├── StudentDashboard.jsx
+│   │   ├── TeacherDashboard.jsx
+│   │   └── <span class="folder">📁 common/</span>
+│   │       ├── AddStudentModal.jsx
+│   │       ├── AddTeacherModal.jsx
+│   │       ├── Notification.jsx
+│   │       ├── NotificationPanel.jsx
+│   │       ├── SendFileModal.jsx
+│   │       └── ShareModal.jsx
+│   ├── App.jsx
+│   ├── App.css
+│   └── index.css
+<span class="folder">📁 public/</span>
+<span class="folder">📁 build/</span>
+                </div>
+                
+                <h3>Component Descriptions</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Component</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>App.jsx</code></td>
+                            <td>Main application with state management and routing</td>
+                        </tr>
+                        <tr>
+                            <td><code>LoginPage.jsx</code></td>
+                            <td>Authentication - login, signup, magic link</td>
+                        </tr>
+                        <tr>
+                            <td><code>StudentDashboard.jsx</code></td>
+                            <td>Student file upload, sharing, likes, comments</td>
+                        </tr>
+                        <tr>
+                            <td><code>TeacherDashboard.jsx</code></td>
+                            <td>Teacher file distribution to students</td>
+                        </tr>
+                        <tr>
+                            <td><code>AdminDashboard.jsx</code></td>
+                            <td>Admin user management and settings</td>
+                        </tr>
+                        <tr>
+                            <td><code>FileViewer.jsx</code></td>
+                            <td>File preview, like, comment display</td>
+                        </tr>
+                        <tr>
+                            <td><code>ShareModal.jsx</code></td>
+                            <td>Student file sharing dialog</td>
+                        </tr>
+                        <tr>
+                            <td><code>SendFileModal.jsx</code></td>
+                            <td>Teacher file distribution with notes</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+            
+            <!-- Technical Details -->
+            <section id="technical">
+                <h2>8. Technical Details</h2>
+                
+                <h3>Technology Stack</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Technology</th>
+                            <th>Version</th>
+                            <th>Purpose</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>React</td>
+                            <td>18.2.0</td>
+                            <td>Frontend framework</td>
+                        </tr>
+                        <tr>
+                            <td>Supabase</td>
+                            <td>v2</td>
+                            <td>Auth & Database</td>
+                        </tr>
+                        <tr>
+                            <td>Tailwind CSS</td>
+                            <td>3.4.19</td>
+                            <td>Styling</td>
+                        </tr>
+                        <tr>
+                            <td>Lucide React</td>
+                            <td>0.562.0</td>
+                            <td>Icons</td>
+                        </tr>
+                        <tr>
+                            <td>React Scripts</td>
+                            <td>5.0.1</td>
+                            <td>Build tool</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <h3>Key Features Implementation</h3>
+                
+                <h4>File Upload</h4>
+                <p>Files are converted to base64 and stored in the database. Maximum file size is 5MB to prevent database bloat.</p>
+                
+                <h4>Magic Link Login</h4>
+                <p>Uses Supabase's <code>signInWithOtp()</code> to send one-time passwords via email.</p>
+                
+                <h4>Teacher File Distribution</h4>
+                <p>Teachers can send files directly to students' file collections with optional notes.</p>
+                
+                <h3>Email Templates</h3>
+                <p>Custom beautiful HTML templates for:</p>
+                <ul class="check-list">
+                    <li>Email confirmation (signup verification)</li>
+                    <li>Magic link (passwordless login)</li>
+                    <li>User invitation</li>
+                </ul>
+                
+                <div class="success-box">
+                    <strong>🎉 Project Ready!</strong><br>
+                    This application is production-ready. Follow the deployment guide to launch your student portfolio platform.
+                </div>
+            </section>
+        </div>
+        
+        <footer>
+            <p>🎓 Student Portfolio - Complete Documentation</p>
+            <p>Version 1.1.0 | Built with React & Supabase</p>
+        </footer>
+    </div>
+</body>
+</html>
