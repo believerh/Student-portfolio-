@@ -62,7 +62,7 @@ const App = () => {
   const [supabase, setSupabase] = useState(null);
   const [showUnverifiedEmailNotification, setShowUnverifiedEmailNotification] = useState(false);
   const [unverifiedEmail, setUnverifiedEmail] = useState('');
-  const [configError, setConfigError] = useState(null);
+  // configError state removed — setup form shown instead of error screen
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingMessage, setLoadingMessage] = useState('');
@@ -280,12 +280,10 @@ const App = () => {
         loadFromDatabase({ url: urlToTry, key: keyToTry });
       } else {
         console.error('Database connection failed — showing setup');
-        setConfigError(null);
         setCurrentView('setup');
       }
     }).catch(err => {
       console.error('Database connection error:', err);
-      setConfigError(null);
       setCurrentView('setup');
     });
   }, [loadFromDatabase]);
