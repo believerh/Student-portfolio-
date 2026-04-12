@@ -254,7 +254,16 @@ npm run build
 
 ## Recent Updates
 
-### Version 1.2.1 (Current)
+### Version 1.2.2 (Latest - 2026-04-12)
+- Fixed **Vercel Deployment Failure** caused by CI lint rules (`process.env.CI=true`)
+- Removed unused variable in `src/App.jsx` (`const row = payload.new || payload.old;`) that triggered `no-unused-vars`
+- Confirmed production build passes locally after fix (`npm run build`)
+- Confirmed realtime subscriptions remain intact for:
+  - `chat_messages` (insert/update/delete)
+  - `files`, `notifications`, `comments`, `likes`, `shares`
+- Pushed fix to GitHub `main` branch
+
+### Version 1.2.1
 - Added **Chat Functionality** - Real-time messaging between students, teachers, and admin
   - General chat (broadcast to all)
   - Private chat (one-on-one)

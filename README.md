@@ -117,6 +117,13 @@ Open [http://localhost:3000](http://localhost:3000)
 
 ---
 
+## Latest Update (2026-04-12)
+
+- ✅ Fixed Vercel deployment failure caused by CI linting (`no-unused-vars` in `src/App.jsx`)
+- ✅ Removed unused variable in chat realtime handler
+- ✅ Verified `npm run build` compiles successfully
+- ✅ Realtime subscriptions for chat/files/notifications/comments/likes/shares are still active
+
 ## License
 
 MIT
