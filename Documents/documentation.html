@@ -345,7 +345,7 @@
         <header>
             <h1>🎓 Student Portfolio</h1>
             <p>Complete Project Documentation</p>
-            <span class="version">Version 1.1.0</span>
+            <span class="version">Version 3.0.0</span>
         </header>
         
         <nav>
@@ -426,7 +426,7 @@
                 <h3>📁 File Management</h3>
                 <ul class="check-list">
                     <li>Upload videos, images, audio, and documents</li>
-                    <li>5MB file size limit for Supabase compatibility</li>
+                    <li>Up to 15GB file size support</li>
                     <li>Built-in file preview for all types</li>
                     <li>Student-to-student file sharing</li>
                     <li>Teacher can send files to students with notes</li>
@@ -436,7 +436,9 @@
                 <ul class="check-list">
                     <li>Like files (students, teachers, admin)</li>
                     <li>Comment on files</li>
-                    <li>Real-time notifications</li>
+                    <li>Real-time notifications (Supabase realtime)</li>
+                    <li>Real-time chat (general &amp; private messaging)</li>
+                    <li>Voice messages in chat</li>
                     <li>Share files between students</li>
                 </ul>
                 
@@ -510,10 +512,10 @@
                 <p>Run the following SQL in your Supabase SQL Editor to create all required tables:</p>
                 
                 <pre><code><span class="sql-comment">-- Enable UUID extension</span>
-<span class="sql-keyword">CREATE EXTENSION</span> <span class="sql-keyword">IF NOT EXISTS</span> <span class="sql-string">"uuid-ossp"</span>;
+<span class="sql-keyword">CREATE EXTENSION IF NOT EXISTS</span> <span class="sql-string">"uuid-ossp"</span>;
 
 <span class="sql-comment">-- Students Table</span>
-<span class="sql-keyword">CREATE TABLE</span> students (
+<span class="sql-keyword">CREATE TABLE IF NOT EXISTS</span> students (
   id UUID <span class="sql-keyword">PRIMARY KEY</span> <span class="sql-keyword">DEFAULT</span> uuid_generate_v4(),
   user_id uuid <span class="sql-keyword">REFERENCES</span> auth.users(id),
   name TEXT <span class="sql-keyword">NOT NULL</span>,
@@ -524,7 +526,7 @@
 );
 
 <span class="sql-comment">-- Teachers Table</span>
-<span class="sql-keyword">CREATE TABLE</span> teachers (
+<span class="sql-keyword">CREATE TABLE IF NOT EXISTS</span> teachers (
   id UUID <span class="sql-keyword">PRIMARY KEY</span> <span class="sql-keyword">DEFAULT</span> uuid_generate_v4(),
   user_id uuid <span class="sql-keyword">REFERENCES</span> auth.users(id),
   name TEXT <span class="sql-keyword">NOT NULL</span>,
@@ -534,8 +536,8 @@
   created_at TIMESTAMP <span class="sql-keyword">DEFAULT</span> <span class="sql-keyword">NOW</span>()
 );
 
-<span class="sql-comment">-- Files Table</span>
-<span class="sql-keyword">CREATE TABLE</span> files (
+<span class="sql-comment">-- Files Table (includes teacher-sent file support)</span>
+<span class="sql-keyword">CREATE TABLE IF NOT EXISTS</span> files (
   id UUID <span class="sql-keyword">PRIMARY KEY</span> <span class="sql-keyword">DEFAULT</span> uuid_generate_v4(),
   student_id uuid <span class="sql-keyword">REFERENCES</span> students(id) <span class="sql-keyword">ON DELETE CASCADE</span>,
   name TEXT <span class="sql-keyword">NOT NULL</span>,
@@ -551,16 +553,17 @@
 );
 
 <span class="sql-comment">-- Settings Table</span>
-<span class="sql-keyword">CREATE TABLE</span> settings (
+<span class="sql-keyword">CREATE TABLE IF NOT EXISTS</span> settings (
   id BIGSERIAL <span class="sql-keyword">PRIMARY KEY</span>,
   signup_enabled BOOLEAN <span class="sql-keyword">DEFAULT true</span>
 );
+<span class="sql-keyword">INSERT INTO</span> settings (signup_enabled) <span class="sql-keyword">VALUES</span> (true) <span class="sql-keyword">ON CONFLICT DO NOTHING</span>;
 
 <span class="sql-comment">-- Comments Table</span>
-<span class="sql-keyword">CREATE TABLE</span> comments (
+<span class="sql-keyword">CREATE TABLE IF NOT EXISTS</span> comments (
   id UUID <span class="sql-keyword">PRIMARY KEY</span> <span class="sql-keyword">DEFAULT</span> uuid_generate_v4(),
   file_id uuid <span class="sql-keyword">REFERENCES</span> files(id) <span class="sql-keyword">ON DELETE CASCADE</span>,
-  user_id uuid <span class="sql-keyword">REFERENCES</span> auth.users(id),
+  user_id TEXT,
   user_name TEXT,
   user_role TEXT,
   text TEXT,
@@ -568,19 +571,45 @@
 );
 
 <span class="sql-comment">-- Likes Table</span>
-<span class="sql-keyword">CREATE TABLE</span> likes (
-  id UUID <span class="sql-keyword">PRIMARY KEY</span> <span class="sql-keyword">DEFAULT</span> uuid_generate_v4(),
+<span class="sql-keyword">CREATE TABLE IF NOT EXISTS</span> likes (
+  id UUID <span class="sql-keyword">PRIMARY KEY DEFAULT</span> uuid_generate_v4(),
   file_id uuid <span class="sql-keyword">REFERENCES</span> files(id) <span class="sql-keyword">ON DELETE CASCADE</span>,
-  user_id uuid <span class="sql-keyword">REFERENCES</span> auth.users(id),
+  user_id TEXT <span class="sql-keyword">NOT NULL</span>,
   <span class="sql-keyword">UNIQUE</span>(file_id, user_id)
 );
 
-<span class="sql-comment">-- Shares Table</span>
-<span class="sql-keyword">CREATE TABLE</span> shares (
-  id UUID <span class="sql-keyword">PRIMARY KEY</span> <span class="sql-keyword">DEFAULT</span> uuid_generate_v4(),
+<span class="sql-comment">-- Shares Table (owner/recipient not FK-constrained - supports all roles)</span>
+<span class="sql-keyword">CREATE TABLE IF NOT EXISTS</span> shares (
+  id UUID <span class="sql-keyword">PRIMARY KEY DEFAULT</span> uuid_generate_v4(),
   file_id uuid <span class="sql-keyword">REFERENCES</span> files(id) <span class="sql-keyword">ON DELETE CASCADE</span>,
-  owner_id uuid <span class="sql-keyword">REFERENCES</span> students(id) <span class="sql-keyword">ON DELETE CASCADE</span>,
-  recipient_id uuid <span class="sql-keyword">REFERENCES</span> students(id) <span class="sql-keyword">ON DELETE CASCADE</span>
+  owner_id uuid,
+  recipient_id uuid
+);
+
+<span class="sql-comment">-- Notifications Table</span>
+<span class="sql-keyword">CREATE TABLE IF NOT EXISTS</span> notifications (
+  id UUID <span class="sql-keyword">PRIMARY KEY DEFAULT</span> gen_random_uuid(),
+  user_id TEXT <span class="sql-keyword">NOT NULL</span>,
+  message TEXT <span class="sql-keyword">NOT NULL</span>,
+  type TEXT <span class="sql-keyword">DEFAULT</span> <span class="sql-string">'info'</span>,
+  read BOOLEAN <span class="sql-keyword">DEFAULT false</span>,
+  created_at TIMESTAMP WITH TIME ZONE <span class="sql-keyword">DEFAULT NOW</span>()
+);
+
+<span class="sql-comment">-- Chat Messages Table</span>
+<span class="sql-keyword">CREATE TABLE IF NOT EXISTS</span> chat_messages (
+  id UUID <span class="sql-keyword">PRIMARY KEY DEFAULT</span> gen_random_uuid(),
+  sender_id TEXT <span class="sql-keyword">NOT NULL</span>,
+  sender_name TEXT <span class="sql-keyword">NOT NULL</span>,
+  sender_role TEXT <span class="sql-keyword">NOT NULL</span>,
+  recipient_id TEXT,
+  recipient_name TEXT,
+  recipient_role TEXT,
+  message_type TEXT <span class="sql-keyword">DEFAULT</span> <span class="sql-string">'text'</span>,
+  message TEXT <span class="sql-keyword">NOT NULL</span>,
+  audio_data TEXT,
+  is_general BOOLEAN <span class="sql-keyword">DEFAULT false</span>,
+  created_at TIMESTAMP WITH TIME ZONE <span class="sql-keyword">DEFAULT NOW</span>()
 );
 
 <span class="sql-comment">-- Enable Row Level Security</span>
@@ -591,6 +620,8 @@
 <span class="sql-keyword">ALTER TABLE</span> comments <span class="sql-keyword">ENABLE ROW LEVEL SECURITY</span>;
 <span class="sql-keyword">ALTER TABLE</span> likes <span class="sql-keyword">ENABLE ROW LEVEL SECURITY</span>;
 <span class="sql-keyword">ALTER TABLE</span> shares <span class="sql-keyword">ENABLE ROW LEVEL SECURITY</span>;
+<span class="sql-keyword">ALTER TABLE</span> notifications <span class="sql-keyword">ENABLE ROW LEVEL SECURITY</span>;
+<span class="sql-keyword">ALTER TABLE</span> chat_messages <span class="sql-keyword">ENABLE ROW LEVEL SECURITY</span>;
 
 <span class="sql-comment">-- Create RLS Policies</span>
 <span class="sql-keyword">CREATE POLICY</span> <span class="sql-string">"Enable all for students"</span> <span class="sql-keyword">ON</span> students <span class="sql-keyword">FOR ALL USING</span> (<span class="sql-keyword">true</span>);
@@ -599,7 +630,16 @@
 <span class="sql-keyword">CREATE POLICY</span> <span class="sql-string">"Enable all for settings"</span> <span class="sql-keyword">ON</span> settings <span class="sql-keyword">FOR ALL USING</span> (<span class="sql-keyword">true</span>);
 <span class="sql-keyword">CREATE POLICY</span> <span class="sql-string">"Enable all for comments"</span> <span class="sql-keyword">ON</span> comments <span class="sql-keyword">FOR ALL USING</span> (<span class="sql-keyword">true</span>);
 <span class="sql-keyword">CREATE POLICY</span> <span class="sql-string">"Enable all for likes"</span> <span class="sql-keyword">ON</span> likes <span class="sql-keyword">FOR ALL USING</span> (<span class="sql-keyword">true</span>);
-<span class="sql-keyword">CREATE POLICY</span> <span class="sql-string">"Enable all for shares"</span> <span class="sql-keyword">ON</span> shares <span class="sql-keyword">FOR ALL USING</span> (<span class="sql-keyword">true</span>);</code></pre>
+<span class="sql-keyword">CREATE POLICY</span> <span class="sql-string">"Enable all for shares"</span> <span class="sql-keyword">ON</span> shares <span class="sql-keyword">FOR ALL USING</span> (<span class="sql-keyword">true</span>);
+<span class="sql-keyword">CREATE POLICY</span> <span class="sql-string">"Enable all for notifications"</span> <span class="sql-keyword">ON</span> notifications <span class="sql-keyword">FOR ALL USING</span> (<span class="sql-keyword">true</span>);
+<span class="sql-keyword">CREATE POLICY</span> <span class="sql-string">"Enable all for chat_messages"</span> <span class="sql-keyword">ON</span> chat_messages <span class="sql-keyword">FOR ALL USING</span> (<span class="sql-keyword">true</span>);
+
+<span class="sql-comment">-- Enable Realtime for live updates</span>
+<span class="sql-keyword">ALTER PUBLICATION</span> supabase_realtime <span class="sql-keyword">ADD TABLE</span> notifications;
+<span class="sql-keyword">ALTER PUBLICATION</span> supabase_realtime <span class="sql-keyword">ADD TABLE</span> chat_messages;
+<span class="sql-keyword">ALTER PUBLICATION</span> supabase_realtime <span class="sql-keyword">ADD TABLE</span> files;
+<span class="sql-keyword">ALTER PUBLICATION</span> supabase_realtime <span class="sql-keyword">ADD TABLE</span> students;
+<span class="sql-keyword">ALTER PUBLICATION</span> supabase_realtime <span class="sql-keyword">ADD TABLE</span> teachers;</code></pre>
             </section>
             
             <!-- Setup -->
@@ -608,7 +648,7 @@
                 
                 <h3>Prerequisites</h3>
                 <ul class="check-list">
-                    <li>Node.js installed (v14 or higher)</li>
+                    <li>Node.js installed (v18 or higher)</li>
                     <li>Supabase account</li>
                     <li>Brevo account (for email sending)</li>
                 </ul>
@@ -830,7 +870,7 @@ vercel --prod</code></pre>
         
         <footer>
             <p>🎓 Student Portfolio - Complete Documentation</p>
-            <p>Version 1.1.0 | Built with React & Supabase</p>
+            <p>Version 3.0.0 | Built with React & Supabase</p>
         </footer>
     </div>
 </body>
