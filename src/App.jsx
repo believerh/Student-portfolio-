@@ -245,32 +245,47 @@ const App = () => {
       setDarkMode(true);
     }
 
-    // Use centralized Supabase configuration
+    // Try env vars first, then localStorage saved config
     const envUrl = API_CONFIG.SUPABASE_URL;
     const envKey = API_CONFIG.SUPABASE_KEY;
-    
-    // Always connect automatically
-    fetch(`${envUrl}/rest/v1/`, {
+
+    let savedConfig = null;
+    try {
+      const raw = localStorage.getItem('dbConfig');
+      if (raw) savedConfig = JSON.parse(raw);
+    } catch(e) {}
+
+    const urlToTry = envUrl || savedConfig?.url || '';
+    const keyToTry = envKey || savedConfig?.key || '';
+
+    if (!urlToTry || !keyToTry) {
+      // No credentials anywhere — show setup form
+      setCurrentView('setup');
+      return;
+    }
+
+    // Try to connect
+    fetch(`${urlToTry}/rest/v1/`, {
       headers: {
-        'apikey': envKey,
-        'Authorization': `Bearer ${envKey}`
+        'apikey': keyToTry,
+        'Authorization': `Bearer ${keyToTry}`
       }
     }).then(res => {
       if (res.ok) {
-        const client = createClient(envUrl, envKey);
+        const client = createClient(urlToTry, keyToTry);
         setSupabase(client);
-        setDbConfig({ url: envUrl, key: envKey });
+        setDbConfig({ url: urlToTry, key: keyToTry });
         setIsConnected(true);
         setCurrentView('login');
-        loadFromDatabase({ url: envUrl, key: envKey });
+        loadFromDatabase({ url: urlToTry, key: keyToTry });
       } else {
-        console.error('Database connection failed');
-        setConfigError('Database connection failed');
+        console.error('Database connection failed — showing setup');
+        setConfigError(null);
         setCurrentView('setup');
       }
     }).catch(err => {
       console.error('Database connection error:', err);
-      setConfigError('Cannot connect to database');
+      setConfigError(null);
       setCurrentView('setup');
     });
   }, [loadFromDatabase]);
@@ -1764,26 +1779,7 @@ const App = () => {
         darkMode={darkMode}
       />
       
-      {configError && (
-        <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-          <div className="bg-white rounded-xl shadow-xl p-8 max-w-md text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
-              <svg className="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            </div>
-            <h2 className="text-xl font-bold text-gray-800 mb-2">Configuration Error</h2>
-            <p className="text-gray-600 mb-4">{configError}</p>
-            <p className="text-sm text-gray-500">Please add the following environment variables in your Vercel project settings:</p>
-            <div className="mt-4 bg-gray-100 rounded-lg p-3 text-left text-sm font-mono">
-              <p className="text-gray-700">REACT_APP_SUPABASE_URL</p>
-              <p className="text-gray-700">REACT_APP_SUPABASE_KEY</p>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {!configError && currentView === 'setup' && <DatabaseSetup 
+      {currentView === 'setup' && <DatabaseSetup 
         darkMode={darkMode}
         toggleDarkMode={toggleDarkMode}
         showNotification={showNotification}
@@ -1938,7 +1934,7 @@ const App = () => {
       />
       
       {/* Fallback loading state */}
-      {!configError && !currentView && (
+      {!currentView && (
         <div className="min-h-screen flex items-center justify-center bg-gray-100">
           <div className="text-center">
             <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
