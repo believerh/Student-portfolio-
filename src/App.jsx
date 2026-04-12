@@ -593,6 +593,33 @@ const App = () => {
       });
       if (!response.ok) {
         const error = await response.json();
+
+        // Backward compatibility: retry files insert without storage_path if DB schema cache is stale
+        if (
+          endpoint === 'files' &&
+          error?.code === 'PGRST204' &&
+          typeof error?.message === 'string' &&
+          error.message.includes('storage_path')
+        ) {
+          const fallbackData = { ...data };
+          delete fallbackData.storage_path;
+
+          const retryResponse = await fetch(`${dbConfig.url}/rest/v1/${endpoint}`, {
+            method,
+            headers: {
+              'apikey': dbConfig.key,
+              'Authorization': `Bearer ${dbConfig.key}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=representation'
+            },
+            body: JSON.stringify(fallbackData)
+          });
+
+          if (retryResponse.ok) {
+            return await retryResponse.json();
+          }
+        }
+
         console.error('Database error:', error);
         const errorMessage = error.message || error.error_description || JSON.stringify(error);
         showNotification(`Error saving to database: ${errorMessage}`);
