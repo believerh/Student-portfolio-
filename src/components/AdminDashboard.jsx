@@ -127,7 +127,7 @@ const AdminDashboard = ({
               <span>ROOT_ADMIN</span>
             </div>
             <button
-              onClick={() => { setCurrentUser(null); setCurrentView('login'); }}
+              onClick={() => { localStorage.removeItem('appSessionUser'); setCurrentUser(null); setCurrentView('login'); }}
               className="flex items-center gap-2 px-4 py-2 bg-gray-900/50 border border-pink-500/30 text-pink-400 hover:border-pink-400 hover:bg-pink-500/10 transition-all"
             >
               <LogOut className="w-4 h-4" />

@@ -168,7 +168,7 @@ const TeacherDashboard = (props) => {
               <span>{currentUser?.name || 'Teacher'}</span>
             </div>
             <button
-              onClick={() => { setCurrentUser(null); setCurrentView('login'); }}
+              onClick={() => { localStorage.removeItem('appSessionUser'); setCurrentUser(null); setCurrentView('login'); }}
               className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition-all duration-200"
             >
               <LogOut className="w-4 h-4" />

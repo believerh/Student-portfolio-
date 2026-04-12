@@ -240,6 +240,54 @@ const App = () => {
     } 
   }, []);
 
+  const restoreSessionUser = useCallback(async (client, config) => {
+    try {
+      const { data: sessionData } = await client.auth.getSession();
+      const sessionUser = sessionData?.session?.user;
+      if (!sessionUser) {
+        setCurrentView('login');
+        return;
+      }
+
+      const role = sessionUser.user_metadata?.role || 'student';
+      const baseUser = {
+        id: sessionUser.id,
+        name: sessionUser.user_metadata?.name || sessionUser.email?.split('@')[0] || 'User',
+        email: sessionUser.email,
+        role,
+      };
+
+      if (role === 'teacher') {
+        const res = await fetch(`${config.url}/rest/v1/teachers?email=eq.${encodeURIComponent(sessionUser.email)}&select=*`, {
+          headers: { 'apikey': config.key, 'Authorization': `Bearer ${config.key}` }
+        });
+        const data = await res.json();
+        if (data?.length > 0) {
+          baseUser.dbId = data[0].id;
+          baseUser.dashboard_link = data[0].dashboard_link;
+        }
+        setCurrentUser(baseUser);
+        setCurrentView('teacher');
+        loadFromDatabase(config, baseUser);
+      } else {
+        const res = await fetch(`${config.url}/rest/v1/students?email=eq.${encodeURIComponent(sessionUser.email)}&select=*`, {
+          headers: { 'apikey': config.key, 'Authorization': `Bearer ${config.key}` }
+        });
+        const data = await res.json();
+        if (data?.length > 0) {
+          baseUser.dbId = data[0].id;
+          baseUser.dashboard_link = data[0].dashboard_link;
+        }
+        setCurrentUser(baseUser);
+        setCurrentView('dashboard');
+        loadFromDatabase(config, baseUser);
+      }
+    } catch (e) {
+      console.error('Session restore failed:', e);
+      setCurrentView('login');
+    }
+  }, [loadFromDatabase]);
+
   useEffect(() => {
     const savedTheme = localStorage.getItem('darkMode');
     if (savedTheme === 'true') {
@@ -277,10 +325,10 @@ const App = () => {
         const client = createClient(urlToTry, keyToTry);
         setSupabase(client);
         initStorageClient(urlToTry, keyToTry);
-        setDbConfig({ url: urlToTry, key: keyToTry });
+        const cfg = { url: urlToTry, key: keyToTry };
+        setDbConfig(cfg);
         setIsConnected(true);
-        setCurrentView('login');
-        loadFromDatabase({ url: urlToTry, key: keyToTry });
+        restoreSessionUser(client, cfg);
       } else {
         console.error('Database connection failed — showing setup');
         setCurrentView('setup');
@@ -289,7 +337,7 @@ const App = () => {
       console.error('Database connection error:', err);
       setCurrentView('setup');
     });
-  }, [loadFromDatabase]);
+  }, [loadFromDatabase, restoreSessionUser]);
 
   // Use ref to track currentUser for real-time subscriptions to avoid stale closures
   const currentUserRef = React.useRef(currentUser);
@@ -746,6 +794,18 @@ const App = () => {
     }
   };
 
+  const persistLocalSession = (user) => {
+    localStorage.setItem('appSessionUser', JSON.stringify({
+      id: user.id,
+      dbId: user.dbId,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      dashboard_link: user.dashboard_link,
+      timestamp: Date.now()
+    }));
+  };
+
   const handleLogin = async (email, password) => {
     setIsLoggingIn(true);
     setLoadingProgress(0);
@@ -754,6 +814,7 @@ const App = () => {
     if (email === ADMIN_ACCOUNT.email && password === ADMIN_ACCOUNT.password) {
       // Instant login — show dashboard immediately, load data in background
       setCurrentUser(ADMIN_ACCOUNT);
+      persistLocalSession(ADMIN_ACCOUNT);
       setCurrentView('admin');
       showNotification('Welcome Administrator!');
       setIsLoggingIn(false);
@@ -864,6 +925,7 @@ const App = () => {
               return;
             }
             setCurrentUser({ ...user });
+            persistLocalSession({ ...user });
             setCurrentView('teacher');
 
             // Load everything else in parallel in background
@@ -940,6 +1002,7 @@ const App = () => {
             }
 
             setCurrentUser({ ...user });
+            persistLocalSession({ ...user });
             setCurrentView('dashboard');
 
             // Load everything else in parallel in background

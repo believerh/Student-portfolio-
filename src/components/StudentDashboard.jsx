@@ -146,7 +146,7 @@ const StudentDashboard = (props) => {
               <span className="hidden sm:inline text-sm">{currentUser?.name || 'Student'}</span>
               <span className="sm:hidden text-xs">{currentUser?.name?.split(' ')[0] || 'S'}</span>
             </div>
-            <button onClick={() => { setCurrentUser(null); setCurrentView('login'); }} className="flex items-center gap-1 sm:gap-2 bg-white/20 hover:bg-white/30 px-2 sm:px-4 py-2 rounded-lg transition-all duration-200 text-xs sm:text-sm">
+            <button onClick={() => { localStorage.removeItem('appSessionUser'); setCurrentUser(null); setCurrentView('login'); }} className="flex items-center gap-1 sm:gap-2 bg-white/20 hover:bg-white/30 px-2 sm:px-4 py-2 rounded-lg transition-all duration-200 text-xs sm:text-sm">
               <LogOut className="w-3 h-4 sm:w-4 sm:h-4" />
               <span className="hidden sm:inline">Logout</span>
             </button>
