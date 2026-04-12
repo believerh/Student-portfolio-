@@ -544,7 +544,6 @@ const App = () => {
       .channel('chat-messages')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_messages' }, (payload) => {
         console.log('Chat change received:', payload);
-        const row = payload.new || payload.old;
 
         if (payload.eventType === 'INSERT') {
           const newMessage = payload.new;
