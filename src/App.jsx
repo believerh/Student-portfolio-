@@ -723,18 +723,22 @@ const App = () => {
     setLoadingMessage('Connecting...');
     
     if (email === ADMIN_ACCOUNT.email && password === ADMIN_ACCOUNT.password) {
-      setLoadingMessage('Loading data...');
-      setLoadingProgress(10);
-      
-      // OPTIMIZED: Load all essential data in parallel
-      const [studentsRes, teachersRes, filesRes, commentsRes, likesRes, sharesRes, chatRes] = await Promise.all([
+      // Instant login — show dashboard immediately, load data in background
+      setCurrentUser(ADMIN_ACCOUNT);
+      setCurrentView('admin');
+      showNotification('Welcome Administrator!');
+      setIsLoggingIn(false);
+      setLoadingProgress(0);
+      setLoadingMessage('');
+
+      // Load all data in background after dashboard is shown
+      Promise.all([
         fetch(`${dbConfig.url}/rest/v1/students?select=*`, {
           headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` }
         }),
         fetch(`${dbConfig.url}/rest/v1/teachers?select=*`, {
           headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` }
         }),
-        // Admin loads files with pagination - first page only
         fetch(`${dbConfig.url}/rest/v1/files?select=*&limit=${FILES_PAGE_SIZE}&order=created_at.desc`, {
           headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` }
         }),
@@ -750,90 +754,40 @@ const App = () => {
         fetch(`${dbConfig.url}/rest/v1/chat_messages?select=*&order=created_at.desc&limit=50`, {
           headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` }
         })
-      ]);
-      
-      setLoadingProgress(50);
-      
-      const [studentsData, teachersData, filesData, commentsData, likesData, sharesData, chatData] = await Promise.all([
-        studentsRes.json(),
-        teachersRes.json(),
-        filesRes.json(),
-        commentsRes.json(),
-        likesRes.json(),
-        sharesRes.json(),
-        chatRes.json()
-      ]);
-      
-      setStudents(studentsData || []);
-      setTeachers(teachersData || []);
-      
-      const filesMap = {};
-      (filesData || []).forEach(file => {
-        if (!filesMap[file.student_id]) filesMap[file.student_id] = [];
-        filesMap[file.student_id].push(file);
-      });
-      setFiles(filesMap);
-      
-      const commentsMap = {};
-      (commentsData || []).forEach(comment => {
-        if (!commentsMap[comment.file_id]) commentsMap[comment.file_id] = [];
-        commentsMap[comment.file_id].push(comment);
-      });
-      setComments(commentsMap);
-      
-      const likesMap = {};
-      (likesData || []).forEach(like => {
-        if (!likesMap[like.file_id]) likesMap[like.file_id] = [];
-        likesMap[like.file_id].push(like.user_id);
-      });
-      setLikes(likesMap);
-      
-      const sharesMap = {};
-      (sharesData || []).forEach(share => {
-        sharesMap[share.id] = {
-          fileId: share.file_id,
-          ownerId: share.owner_id,
-          recipientId: share.recipient_id,
-        };
-      });
-      setShares(sharesMap);
-      setChatMessages(chatData || []);
-      
-      setLoadingProgress(75);
-      
-      // Load notifications separately (non-blocking)
-      if (supabase) {
-        supabase
-          .from('notifications')
-          .select('*')
-          .eq('user_id', 'admin_001')
-          .order('created_at', { ascending: false })
-          .limit(50)
-          .then(({ data: notifData }) => {
-            if (notifData && notifData.length > 0) {
-              const loadedNotifications = notifData.map(n => ({
-                id: n.id,
-                userId: n.user_id,
-                message: n.message,
-                type: n.type,
-                read: n.read,
-                timestamp: n.created_at
-              }));
-              setNotifications(loadedNotifications);
-            }
+      ]).then(responses => Promise.all(responses.map(r => r.json())))
+        .then(([studentsData, teachersData, filesData, commentsData, likesData, sharesData, chatData]) => {
+          setStudents(studentsData || []);
+          setTeachers(teachersData || []);
+          const filesMap = {};
+          (filesData || []).forEach(file => {
+            if (!filesMap[file.student_id]) filesMap[file.student_id] = [];
+            filesMap[file.student_id].push(file);
           });
-      }
-      
-      setLoadingProgress(100);
-      setTimeout(() => {
-        setCurrentUser(ADMIN_ACCOUNT);
-        setCurrentView('admin');
-        showNotification('Welcome Administrator!');
-        setIsLoggingIn(false);
-        setLoadingProgress(0);
-        setLoadingMessage('');
-      }, 300);
-      
+          setFiles(filesMap);
+          const commentsMap = {};
+          (commentsData || []).forEach(comment => {
+            if (!commentsMap[comment.file_id]) commentsMap[comment.file_id] = [];
+            commentsMap[comment.file_id].push(comment);
+          });
+          setComments(commentsMap);
+          const likesMap = {};
+          (likesData || []).forEach(like => {
+            if (!likesMap[like.file_id]) likesMap[like.file_id] = [];
+            likesMap[like.file_id].push(like.user_id);
+          });
+          setLikes(likesMap);
+          const sharesMap = {};
+          (sharesData || []).forEach(share => {
+            sharesMap[share.id] = {
+              fileId: share.file_id,
+              ownerId: share.owner_id,
+              recipientId: share.recipient_id,
+            };
+          });
+          setShares(sharesMap);
+          setChatMessages(chatData || []);
+        }).catch(err => console.error('Background load error:', err));
+
       return;
     }
 
