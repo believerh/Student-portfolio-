@@ -813,285 +813,133 @@ const App = () => {
             role: userRole,
           };
 
-          if (userRole !== 'teacher') {
-            setCurrentUser(user);
-            setCurrentView('dashboard');
-          }
           showNotification(`Welcome back, ${user.name}!`);
+          setIsLoggingIn(false);
+          setLoadingProgress(0);
+          setLoadingMessage('');
 
           if (userRole === 'teacher') {
-            setLoadingMessage('Loading your profile...');
-            setLoadingProgress(10);
-            
-            // OPTIMIZED: Parallel fetch for profile and essential data
-            const [teachersRes, studentsRes] = await Promise.all([
-              fetch(`${dbConfig.url}/rest/v1/teachers?email=eq.${encodeURIComponent(email)}&select=*`, {
-                headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` }
-              }),
-              fetch(`${dbConfig.url}/rest/v1/students?select=*`, {
-                headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` }
-              })
-            ]);
-            
-            const teachersData = await teachersRes.json();
-            const studentsData = await studentsRes.json();
-            setStudents(studentsData || []);
-            
-            if (teachersData && teachersData.length > 0) {
-              user.dbId = teachersData[0].id;
-              user.dashboard_link = teachersData[0].dashboard_link;
-              setCurrentUser({ ...user });
+            // ⚡ INSTANT: fetch profile first (needed for dbId), show dashboard, rest loads in background
+            const teacherProfileRes = await fetch(
+              `${dbConfig.url}/rest/v1/teachers?email=eq.${encodeURIComponent(email)}&select=*`,
+              { headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` } }
+            );
+            const teacherProfile = await teacherProfileRes.json();
+            if (teacherProfile && teacherProfile.length > 0) {
+              user.dbId = teacherProfile[0].id;
+              user.dashboard_link = teacherProfile[0].dashboard_link;
             }
-            
-            setLoadingProgress(30);
-            
-            // OPTIMIZED: Teacher doesn't need ALL files - load first page per student on demand
-            // Only load files for students who have uploaded files (first page each)
-            const initialFilesMap = {};
-            const filesRes = await fetch(`${dbConfig.url}/rest/v1/files?select=*&limit=${FILES_PAGE_SIZE}&order=created_at.desc`, {
-              headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` }
-            });
-            const allFilesData = await filesRes.json();
-            (allFilesData || []).forEach(file => {
-              if (!initialFilesMap[file.student_id]) initialFilesMap[file.student_id] = [];
-              if (initialFilesMap[file.student_id].length < FILES_PAGE_SIZE) {
-                initialFilesMap[file.student_id].push(file);
+            setCurrentUser({ ...user });
+            setCurrentView('teacher');
+
+            // Load everything else in parallel in background
+            Promise.all([
+              fetch(`${dbConfig.url}/rest/v1/students?select=*`, { headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` } }),
+              fetch(`${dbConfig.url}/rest/v1/files?select=*&limit=${FILES_PAGE_SIZE}&order=created_at.desc`, { headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` } }),
+              fetch(`${dbConfig.url}/rest/v1/shares?select=*&limit=100`, { headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` } }),
+              fetch(`${dbConfig.url}/rest/v1/comments?select=*&limit=100`, { headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` } }),
+              fetch(`${dbConfig.url}/rest/v1/likes?select=*&limit=100`, { headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` } }),
+              fetch(`${dbConfig.url}/rest/v1/chat_messages?select=*&order=created_at.desc&limit=50`, { headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` } }),
+              supabase ? supabase.from('notifications').select('*').eq('user_id', user.dbId).order('created_at', { ascending: false }).limit(50) : Promise.resolve({ data: [] })
+            ]).then(async ([sRes, fRes, shRes, cRes, lRes, chRes, notifResult]) => {
+              const [studentsData, filesData, sharesData, commentsData, likesData, chatData] = await Promise.all([
+                sRes.json(), fRes.json(), shRes.json(), cRes.json(), lRes.json(), chRes.json()
+              ]);
+              setStudents(studentsData || []);
+              const filesMap = {};
+              (filesData || []).forEach(f => {
+                if (!filesMap[f.student_id]) filesMap[f.student_id] = [];
+                filesMap[f.student_id].push(f);
+              });
+              setFiles(filesMap);
+              const sharesMap = {};
+              (sharesData || []).forEach(s => { sharesMap[s.id] = { fileId: s.file_id, ownerId: s.owner_id, recipientId: s.recipient_id }; });
+              setShares(sharesMap);
+              const commentsMap = {};
+              (commentsData || []).forEach(c => { if (!commentsMap[c.file_id]) commentsMap[c.file_id] = []; commentsMap[c.file_id].push(c); });
+              setComments(commentsMap);
+              const likesMap = {};
+              (likesData || []).forEach(l => { if (!likesMap[l.file_id]) likesMap[l.file_id] = []; likesMap[l.file_id].push(l.user_id); });
+              setLikes(likesMap);
+              setChatMessages(chatData || []);
+              if (notifResult?.data?.length > 0) {
+                setNotifications(notifResult.data.map(n => ({ id: n.id, userId: n.user_id, message: n.message, type: n.type, read: n.read, timestamp: n.created_at })));
               }
-            });
-            setFiles(initialFilesMap);
-            
-            setLoadingProgress(50);
-            
-            // OPTIMIZED: Load essential data in parallel
-            const [sharesRes, commentsRes, likesRes, chatRes, privateChatRes] = await Promise.all([
-              fetch(`${dbConfig.url}/rest/v1/shares?select=*&limit=100`, {
-                headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` }
-              }),
-              fetch(`${dbConfig.url}/rest/v1/comments?select=*&limit=100`, {
-                headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` }
-              }),
-              fetch(`${dbConfig.url}/rest/v1/likes?select=*&limit=100`, {
-                headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` }
-              }),
-              fetch(`${dbConfig.url}/rest/v1/chat_messages?select=*&order=created_at.desc&limit=50`, {
-                headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` }
-              }),
-              user.dbId ? fetch(`${dbConfig.url}/rest/v1/chat_messages?or=(sender_id.eq.${user.dbId},recipient_id.eq.${user.dbId})&select=*&order=created_at.desc&limit=50`, {
-                headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` }
-              }) : Promise.resolve({ json: () => [] })
-            ]);
-            
-            const [sharesData, commentsData, likesData, chatData, privateChatData] = await Promise.all([
-              sharesRes.json(),
-              commentsRes.json(),
-              likesRes.json(),
-              chatRes.json(),
-              privateChatRes.json()
-            ]);
-            
-            const sharesMap = {};
-            (sharesData || []).forEach(share => {
-              sharesMap[share.id] = {
-                fileId: share.file_id,
-                ownerId: share.owner_id,
-                recipientId: share.recipient_id,
-              };
-            });
-            setShares(sharesMap);
-            
-            const commentsMap = {};
-            (commentsData || []).forEach(comment => {
-              if (!commentsMap[comment.file_id]) commentsMap[comment.file_id] = [];
-              commentsMap[comment.file_id].push(comment);
-            });
-            setComments(commentsMap);
-            
-            const likesMap = {};
-            (likesData || []).forEach(like => {
-              if (!likesMap[like.file_id]) likesMap[like.file_id] = [];
-              likesMap[like.file_id].push(like.user_id);
-            });
-            setLikes(likesMap);
-            
-            const allChatData = [...(chatData || []), ...(privateChatData || [])];
-            const uniqueChatData = allChatData.filter((v,i,a)=>a.findIndex(t=>(t.id===v.id))===i).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
-            setChatMessages(uniqueChatData);
-            
-            setLoadingProgress(85);
-            
-            if (supabase && user.dbId) {
-              supabase
-                .from('notifications')
-                .select('*')
-                .eq('user_id', user.dbId)
-                .order('created_at', { ascending: false })
-                .limit(50)
-                .then(({ data: notifData }) => {
-                  if (notifData && notifData.length > 0) {
-                    const loadedNotifications = notifData.map(n => ({
-                      id: n.id,
-                      userId: n.user_id,
-                      message: n.message,
-                      type: n.type,
-                      read: n.read,
-                      timestamp: n.created_at
-                    }));
-                    setNotifications(loadedNotifications);
-                  }
-                });
-            }
-            
-            setLoadingProgress(100);
-            setTimeout(() => {
-              setCurrentUser({ ...user });
-              setCurrentView('teacher');
-              setLoadingProgress(0);
-              setLoadingMessage('');
-              setIsLoggingIn(false);
-            }, 300);
+            }).catch(err => console.error('Background load error (teacher):', err));
+
           } else {
-            // OPTIMIZED: Load all essential user data in parallel
-            const [studentsRes, teachersRes, userFilesRes, sharesRes, chatRes, privateChatRes] = await Promise.all([
-              fetch(`${dbConfig.url}/rest/v1/students?select=*`, {
-                headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` }
-              }),
-              fetch(`${dbConfig.url}/rest/v1/teachers?select=*`, {
-                headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` }
-              }),
-              // Student loads only their own files with pagination
-              fetch(`${dbConfig.url}/rest/v1/files?student_id=eq.${user.dbId || 'pending'}&select=*&order=created_at.desc&limit=${FILES_PAGE_SIZE}`, {
-                headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` }
-              }),
-              fetch(`${dbConfig.url}/rest/v1/shares?recipient_id=eq.${user.dbId || 'pending'}&select=*&limit=50`, {
-                headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` }
-              }),
-              fetch(`${dbConfig.url}/rest/v1/chat_messages?select=*&order=created_at.desc&limit=20`, {
-                headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` }
-              }),
-              fetch(`${dbConfig.url}/rest/v1/chat_messages?or=(sender_id.eq.${user.dbId || 'pending'},recipient_id.eq.${user.dbId || 'pending'})&select=*&order=created_at.desc&limit=30`, {
-                headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` }
-              })
-            ]);
-            
-            const [allStudentsData, teachersData, userFilesData, sharesData, chatData, privateChatData] = await Promise.all([
-              studentsRes.json(),
-              teachersRes.json(),
-              userFilesRes.json(),
-              sharesRes.json(),
-              chatRes.json(),
-              privateChatRes.json()
-            ]);
-            
-            const studentsData = allStudentsData.filter(s => s.email === email);
-            setStudents(allStudentsData || []);
-            setTeachers(teachersData || []);
-            
-            // Create profile for new users if not exists
-            if (!studentsData || studentsData.length === 0) {
-              const userRole = data.user.user_metadata?.role || 'student';
-              if (userRole === 'student') {
-                const newUserProfile = {
-                  user_id: data.user.id,
-                  name: data.user.user_metadata?.name || email.split('@')[0],
-                  email: data.user.email,
-                  role: userRole,
-                  dashboard_link: `${window.location.origin}?user=${data.user.id}`,
-                };
-                const saved = await saveToDatabase('students', newUserProfile);
-                if (saved && saved.length > 0) {
-                  user.dbId = saved[0].id;
-                  user.dashboard_link = saved[0].dashboard_link;
-                  setStudents(prev => [...prev, saved[0]]);
-                  setCurrentUser({ ...user });
-                  showNotification('Profile created successfully!');
-                }
+            // ⚡ INSTANT STUDENT LOGIN: fetch profile first (needed for dbId), show dashboard, rest in background
+            const studentProfileRes = await fetch(
+              `${dbConfig.url}/rest/v1/students?email=eq.${encodeURIComponent(email)}&select=*`,
+              { headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` } }
+            );
+            const studentProfile = await studentProfileRes.json();
+
+            if (!studentProfile || studentProfile.length === 0) {
+              // First login — create profile
+              const newUserProfile = {
+                user_id: data.user.id,
+                name: data.user.user_metadata?.name || email.split('@')[0],
+                email: data.user.email,
+                role: 'student',
+                dashboard_link: `${window.location.origin}?user=${data.user.id}`,
+              };
+              const saved = await saveToDatabase('students', newUserProfile);
+              if (saved && saved.length > 0) {
+                user.dbId = saved[0].id;
+                user.dashboard_link = saved[0].dashboard_link;
+                setStudents(prev => [...prev, saved[0]]);
               }
             } else {
-              user.dbId = studentsData[0].id;
-              user.dashboard_link = studentsData[0].dashboard_link;
-              setCurrentUser({ ...user });
+              user.dbId = studentProfile[0].id;
+              user.dashboard_link = studentProfile[0].dashboard_link;
             }
-            
-            // Update files with pagination tracking (for both new and existing users)
+            setCurrentUser({ ...user });
+            setCurrentView('dashboard');
+
+            // Load everything else in parallel in background
             if (user.dbId) {
-              const filesMap = {};
-              filesMap[user.dbId] = userFilesData || [];
-              setFiles(filesMap);
-              
-              // Build shares map
-              const sharesMap = {};
-              (sharesData || []).forEach(share => {
-                sharesMap[share.id] = {
-                  fileId: share.file_id,
-                  ownerId: share.owner_id,
-                  recipientId: share.recipient_id,
-                };
-              });
-              setShares(sharesMap);
-              
-              // OPTIMIZED: Load comments & likes in parallel
-              if (userFilesData && userFilesData.length > 0) {
-                const fileIds = userFilesData.map(f => f.id).join(',');
-                const [commentsRes, likesRes] = await Promise.all([
-                  fetch(`${dbConfig.url}/rest/v1/comments?file_id=in.(${fileIds})&select=*`, {
-                    headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` }
-                  }),
-                  fetch(`${dbConfig.url}/rest/v1/likes?file_id=in.(${fileIds})&select=*`, {
-                    headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` }
-                  })
+              Promise.all([
+                fetch(`${dbConfig.url}/rest/v1/students?select=*`, { headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` } }),
+                fetch(`${dbConfig.url}/rest/v1/teachers?select=*`, { headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` } }),
+                fetch(`${dbConfig.url}/rest/v1/files?student_id=eq.${user.dbId}&select=*&order=created_at.desc&limit=${FILES_PAGE_SIZE}`, { headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` } }),
+                fetch(`${dbConfig.url}/rest/v1/shares?recipient_id=eq.${user.dbId}&select=*&limit=50`, { headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` } }),
+                fetch(`${dbConfig.url}/rest/v1/chat_messages?select=*&order=created_at.desc&limit=50`, { headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` } }),
+                supabase ? supabase.from('notifications').select('*').eq('user_id', user.dbId).order('created_at', { ascending: false }).limit(50) : Promise.resolve({ data: [] })
+              ]).then(async ([sRes, tRes, fRes, shRes, chRes, notifResult]) => {
+                const [studentsData, teachersData, filesData, sharesData, chatData] = await Promise.all([
+                  sRes.json(), tRes.json(), fRes.json(), shRes.json(), chRes.json()
                 ]);
-                const [commentsData, likesData] = await Promise.all([commentsRes.json(), likesRes.json()]);
-                
-                const commentsMap = {};
-                (commentsData || []).forEach(comment => {
-                  if (!commentsMap[comment.file_id]) commentsMap[comment.file_id] = [];
-                  commentsMap[comment.file_id].push(comment);
-                });
-                setComments(commentsMap);
-                
-                const likesMap = {};
-                (likesData || []).forEach(like => {
-                  if (!likesMap[like.file_id]) likesMap[like.file_id] = [];
-                  likesMap[like.file_id].push(like.user_id);
-                });
-                setLikes(likesMap);
-              }
-              
-              // Combine and deduplicate chat messages
-              const allChatData = [...(chatData || []), ...(privateChatData || [])];
-              const uniqueChatData = allChatData.filter((v,i,a)=>a.findIndex(t=>(t.id===v.id))===i).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
-              setChatMessages(uniqueChatData);
-              
-              // Load notifications separately (non-blocking)
-              if (supabase && user.dbId) {
-                supabase
-                  .from('notifications')
-                  .select('*')
-                  .eq('user_id', user.dbId)
-                  .order('created_at', { ascending: false })
-                  .limit(50)
-                  .then(({ data: notifData }) => {
-                    if (notifData && notifData.length > 0) {
-                      const loadedNotifications = notifData.map(n => ({
-                        id: n.id,
-                        userId: n.user_id,
-                        message: n.message,
-                        type: n.type,
-                        read: n.read,
-                        timestamp: n.created_at
-                      }));
-                      setNotifications(loadedNotifications);
-                    }
+                setStudents(studentsData || []);
+                setTeachers(teachersData || []);
+                const filesMap = {};
+                filesMap[user.dbId] = filesData || [];
+                setFiles(filesMap);
+                const sharesMap = {};
+                (sharesData || []).forEach(s => { sharesMap[s.id] = { fileId: s.file_id, ownerId: s.owner_id, recipientId: s.recipient_id }; });
+                setShares(sharesMap);
+                setChatMessages(chatData || []);
+                // Load comments & likes only if student has files
+                if (filesData && filesData.length > 0) {
+                  const fileIds = filesData.map(f => f.id).join(',');
+                  Promise.all([
+                    fetch(`${dbConfig.url}/rest/v1/comments?file_id=in.(${fileIds})&select=*`, { headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` } }),
+                    fetch(`${dbConfig.url}/rest/v1/likes?file_id=in.(${fileIds})&select=*`, { headers: { 'apikey': dbConfig.key, 'Authorization': `Bearer ${dbConfig.key}` } })
+                  ]).then(async ([cRes, lRes]) => {
+                    const [commentsData, likesData] = await Promise.all([cRes.json(), lRes.json()]);
+                    const commentsMap = {};
+                    (commentsData || []).forEach(c => { if (!commentsMap[c.file_id]) commentsMap[c.file_id] = []; commentsMap[c.file_id].push(c); });
+                    setComments(commentsMap);
+                    const likesMap = {};
+                    (likesData || []).forEach(l => { if (!likesMap[l.file_id]) likesMap[l.file_id] = []; likesMap[l.file_id].push(l.user_id); });
+                    setLikes(likesMap);
                   });
-              }
+                }
+                if (notifResult?.data?.length > 0) {
+                  setNotifications(notifResult.data.map(n => ({ id: n.id, userId: n.user_id, message: n.message, type: n.type, read: n.read, timestamp: n.created_at })));
+                }
+              }).catch(err => console.error('Background load error (student):', err));
             }
-            
-            setLoadingProgress(100);
-            setTimeout(() => {
-              setLoadingProgress(0);
-              setLoadingMessage('');
-              setIsLoggingIn(false);
-            }, 300);
           }
         } else {
           setUnverifiedEmail(email);
