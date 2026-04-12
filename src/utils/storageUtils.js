@@ -19,7 +19,7 @@ export const uploadFileToStorage = async (bucket, userId, file) => {
   const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
   const filePath = `${userId}/${timestamp}-${sanitizedName}`;
 
-  const { data, error } = await storageClient.storage
+  const { error } = await storageClient.storage
     .from(bucket)
     .upload(filePath, file, {
       cacheControl: '3600',
