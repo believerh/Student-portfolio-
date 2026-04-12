@@ -10,6 +10,7 @@ import AddStudentModal from './components/common/AddStudentModal';
 import AddTeacherModal from './components/common/AddTeacherModal';
 import ChatModal from './components/common/ChatModal';
 import { API_CONFIG } from './utils/apiConfig';
+import { initStorageClient, uploadFileToStorage, deleteFileFromStorage, getBucketForType } from './utils/storageUtils';
 
 // Lazy load dashboard components for code splitting
 const StudentDashboard = lazy(() => import('./components/StudentDashboard'));
@@ -275,6 +276,7 @@ const App = () => {
       if (res.ok || res.status === 406) {
         const client = createClient(urlToTry, keyToTry);
         setSupabase(client);
+        initStorageClient(urlToTry, keyToTry);
         setDbConfig({ url: urlToTry, key: keyToTry });
         setIsConnected(true);
         setCurrentView('login');
@@ -995,6 +997,26 @@ const App = () => {
     }
   };
 
+  // Password Reset
+  const handlePasswordReset = async (email) => {
+    if (!supabase) {
+      showNotification('Not connected to database');
+      return;
+    }
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}?reset=true`,
+      });
+      if (error) {
+        showNotification(`Error: ${error.message}`);
+      } else {
+        showNotification('Password reset email sent! Check your inbox. 📧');
+      }
+    } catch (err) {
+      showNotification('Failed to send reset email. Try again later.');
+    }
+  };
+
   // Magic Link Login
   const handleMagicLink = async (email, role = 'student') => {
     if (!supabase) {
@@ -1185,43 +1207,64 @@ const App = () => {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
+    if (!isConnected) {
+      showNotification('Error: Not connected to database.');
+      return;
+    }
+
+    showNotification('Uploading file...');
+
+    try {
+      // Upload to Supabase Storage
+      const bucket = getBucketForType(fileType);
+      let fileUrl = null;
+      let storagePath = null;
+
+      try {
+        const uploaded = await uploadFileToStorage(bucket, actualStudentId, file);
+        fileUrl = uploaded.url;
+        storagePath = uploaded.path;
+      } catch (storageErr) {
+        // Storage bucket may not exist yet — fall back to base64
+        console.warn('Storage upload failed, falling back to base64:', storageErr.message);
+        fileUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
+
       const newFile = {
         student_id: actualStudentId,
         name: file.name,
         type: fileType,
         upload_date: new Date().toLocaleDateString(),
-        size: (file.size / 1024).toFixed(2) + ' KB',
-        data: e.target.result,
+        size: file.size < 1024 * 1024
+          ? (file.size / 1024).toFixed(1) + ' KB'
+          : (file.size / (1024 * 1024)).toFixed(2) + ' MB',
+        data: fileUrl,
+        storage_path: storagePath,
         mime_type: file.type,
         created_at: new Date().toISOString()
       };
 
-      if (isConnected) {
-        showNotification('Uploading file...');
-        const saved = await saveToDatabase('files', newFile);
-        if (saved && saved.length > 0) {
-          newFile.id = saved[0].id;
-          const updatedFiles = {
-            ...files,
-            [actualStudentId]: [...(files[actualStudentId] || []), newFile]
-          };
-          setFiles(updatedFiles);
-          
-          addNotification('admin_001', `New file uploaded by ${currentUser.name}: ${file.name}`, 'upload');
-          sendEmailNotification('admin@school.com', 'New File Upload', `${currentUser.name} uploaded ${file.name}`);
-          
-          showNotification('File uploaded successfully!');
-        }
+      const saved = await saveToDatabase('files', newFile);
+      if (saved && saved.length > 0) {
+        const savedFile = { ...newFile, id: saved[0].id };
+        setFiles(prev => ({
+          ...prev,
+          [actualStudentId]: [...(prev[actualStudentId] || []), savedFile]
+        }));
+        addNotification('admin_001', `New file uploaded by ${currentUser.name}: ${file.name}`, 'upload');
+        showNotification('File uploaded successfully! ✅');
       } else {
-        showNotification('Error: Not connected to database. Please configure Supabase first.');
+        showNotification('Error saving file record. Check Supabase permissions.');
       }
-    };
-    reader.onerror = () => {
-      showNotification('Error reading file');
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Upload error:', err);
+      showNotification(`Upload failed: ${err.message}`);
+    }
   };
 
   // Chat functions
@@ -1332,16 +1375,26 @@ const App = () => {
     if (window.confirm('Are you sure you want to delete this file? This action cannot be undone.')) {
       if (isConnected && supabase) {
         try {
+          // Find file to get storage_path for cleanup
+          const fileToDelete = (files[studentId] || []).find(f => f.id === fileId);
+
           const { error } = await supabase.from('files').delete().eq('id', fileId);
           if (error) throw error;
 
-          // Update local state (cascading deletes for likes, comments, and shares are handled by DB)
-          const studentFiles = files[studentId] || [];
-          const updatedFiles = {
-            ...files,
-            [studentId]: studentFiles.filter(f => f.id !== fileId)
-          };
-          setFiles(updatedFiles);
+          // Delete from Supabase Storage if it was stored there
+          if (fileToDelete?.storage_path) {
+            const bucket = getBucketForType(fileToDelete.type);
+            try {
+              await deleteFileFromStorage(bucket, fileToDelete.storage_path);
+            } catch (storageErr) {
+              console.warn('Storage delete failed (file may already be gone):', storageErr.message);
+            }
+          }
+
+          setFiles(prev => ({
+            ...prev,
+            [studentId]: (prev[studentId] || []).filter(f => f.id !== fileId)
+          }));
           showNotification('File deleted successfully!');
         } catch (error) {
           console.error('Error deleting file:', error);
@@ -1498,16 +1551,38 @@ const App = () => {
     else if (mimeType.startsWith('image/')) fileType = 'image';
     else if (mimeType.startsWith('audio/')) fileType = 'audio';
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      // Create file records for each recipient
+    showNotification('Uploading and sending file...');
+
+    try {
+      // Upload once to Storage, share URL with all recipients
+      const bucket = getBucketForType(fileType);
+      let fileUrl = null;
+      let storagePath = null;
+
+      try {
+        const uploaded = await uploadFileToStorage(bucket, `teacher_${currentUser.dbId}`, file);
+        fileUrl = uploaded.url;
+        storagePath = uploaded.path;
+      } catch (storageErr) {
+        console.warn('Storage upload failed, falling back to base64:', storageErr.message);
+        fileUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
+
       const filesToSave = recipientIds.map(recipientId => ({
         student_id: recipientId,
         name: file.name,
         type: fileType,
         upload_date: new Date().toLocaleDateString(),
-        size: (file.size / 1024).toFixed(2) + ' KB',
-        data: e.target.result,
+        size: file.size < 1024 * 1024
+          ? (file.size / 1024).toFixed(1) + ' KB'
+          : (file.size / (1024 * 1024)).toFixed(2) + ' MB',
+        data: fileUrl,
+        storage_path: storagePath,
         mime_type: file.type,
         created_at: new Date().toISOString(),
         note: note || '',
@@ -1516,37 +1591,30 @@ const App = () => {
       }));
 
       const saved = await saveToDatabase('files', filesToSave);
-      
       if (saved && saved.length > 0) {
-        // Update local files state
         const updatedFiles = { ...files };
-        saved.forEach((newFile, index) => {
-          const recipientId = recipientIds[index];
-          if (!updatedFiles[recipientId]) {
-            updatedFiles[recipientId] = [];
-          }
-          updatedFiles[recipientId].push(newFile);
+        saved.forEach((newFile) => {
+          if (!updatedFiles[newFile.student_id]) updatedFiles[newFile.student_id] = [];
+          updatedFiles[newFile.student_id].push(newFile);
         });
         setFiles(updatedFiles);
-
-        // Send notifications to recipients
         recipientIds.forEach(recipientId => {
           const recipient = students.find(s => s.id === recipientId);
           if (recipient) {
-            const message = note 
+            const message = note
               ? `${currentUser.name} sent you a file: ${file.name}. Note: ${note}`
               : `${currentUser.name} sent you a file: ${file.name}`;
             addNotification(recipientId, message, 'teacher_file');
-            sendEmailNotification(recipient.email, 'New File From Teacher', message);
           }
         });
-
-        showNotification(`File sent to ${recipientIds.length} student${recipientIds.length !== 1 ? 's' : ''}!`);
+        showNotification(`File sent to ${recipientIds.length} student${recipientIds.length !== 1 ? 's' : ''}! ✅`);
       } else {
-        showNotification('Error sending file');
+        showNotification('Error sending file. Check Supabase permissions.');
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Send file error:', err);
+      showNotification(`Failed to send file: ${err.message}`);
+    }
   };
 
 
@@ -1641,6 +1709,7 @@ const App = () => {
             handleLogin={handleLogin}
             handleResendVerification={handleResendVerification}
             handleMagicLink={handleMagicLink}
+            handlePasswordReset={handlePasswordReset}
             showUnverifiedEmailNotification={showUnverifiedEmailNotification}
             unverifiedEmail={unverifiedEmail}
             isLoggingIn={isLoggingIn}

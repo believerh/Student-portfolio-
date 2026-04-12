@@ -43,6 +43,7 @@ CREATE TABLE files (
   sent_by_teacher BOOLEAN DEFAULT false,
   teacher_id UUID,
   note TEXT,
+  storage_path TEXT,
   created_at TIMESTAMP DEFAULT NOW()
 );
 

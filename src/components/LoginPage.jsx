@@ -10,6 +10,7 @@ const LoginPage = ({
   handleLogin,
   handleResendVerification,
   handleMagicLink,
+  handlePasswordReset,
   showUnverifiedEmailNotification,
   unverifiedEmail,
   isLoggingIn,
@@ -18,6 +19,7 @@ const LoginPage = ({
   const [formData, setFormData] = useState({ name: '', email: '', password: '' });
   const [localShowUnverified, setLocalShowUnverified] = useState(showUnverifiedEmailNotification);
   const [sendingMagic, setSendingMagic] = useState(false);
+  const [sendingReset, setSendingReset] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
   const [magicRole, setMagicRole] = useState('student');
 
@@ -328,6 +330,27 @@ const LoginPage = ({
               <p className={`text-center text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                 We'll send you a one-time login link to your email. No password needed! ✨
               </p>
+            )}
+
+            {/* Forgot Password */}
+            {loginMode === 'login' && (
+              <div className="text-center">
+                <button
+                  onClick={async () => {
+                    if (!formData.email) {
+                      showNotification('Enter your email address first');
+                      return;
+                    }
+                    setSendingReset(true);
+                    await handlePasswordReset(formData.email);
+                    setSendingReset(false);
+                  }}
+                  disabled={sendingReset}
+                  className={`text-sm ${darkMode ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600 hover:text-indigo-700'} underline disabled:opacity-50`}
+                >
+                  {sendingReset ? 'Sending...' : '🔑 Forgot password?'}
+                </button>
+              </div>
             )}
           </div>
 

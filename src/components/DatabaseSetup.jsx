@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import React, { useState } from 'react';
 import { FileText, Database, Sun, Moon } from 'lucide-react';
+import { initStorageClient } from '../utils/storageUtils';
 
 const DatabaseSetup = ({ darkMode, toggleDarkMode, showNotification, setSupabase, setDbConfig, setIsConnected, loadFromDatabase, setCurrentView }) => {
     const [setupData, setSetupData] = useState({ url: '', key: '' });
@@ -23,6 +24,7 @@ const DatabaseSetup = ({ darkMode, toggleDarkMode, showNotification, setSupabase
           localStorage.setItem('dbConfig', JSON.stringify(setupData));
           const client = createClient(setupData.url, setupData.key);
           setSupabase(client);
+          initStorageClient(setupData.url, setupData.key);
           setDbConfig(setupData);
           setIsConnected(true);
           
@@ -161,6 +163,7 @@ CREATE TABLE files (
   sent_by_teacher BOOLEAN DEFAULT false,
   teacher_id uuid,
   note TEXT,
+  storage_path TEXT,
   created_at TIMESTAMP DEFAULT NOW()
 );
 

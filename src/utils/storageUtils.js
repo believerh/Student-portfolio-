@@ -4,65 +4,61 @@ let storageClient = null;
 
 export const initStorageClient = (url, key) => {
   if (!storageClient) {
-    storageClient = createClient(url, key, {
-      auth: { persistSession: false }
-    });
+    storageClient = createClient(url, key);
   }
   return storageClient;
 };
 
 export const getStorageClient = () => storageClient;
 
-export const uploadFileToStorage = async (bucket, filePath, file) => {
-  if (!storageClient) {
-    throw new Error('Storage client not initialized');
-  }
+// Upload a file to Supabase Storage and return its public URL
+export const uploadFileToStorage = async (bucket, userId, file) => {
+  if (!storageClient) throw new Error('Storage client not initialized');
 
-  const { data, error } = await storageClient
-    .storage
+  const timestamp = Date.now();
+  const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const filePath = `${userId}/${timestamp}-${sanitizedName}`;
+
+  const { data, error } = await storageClient.storage
     .from(bucket)
     .upload(filePath, file, {
       cacheControl: '3600',
-      upsert: false
+      upsert: false,
+      contentType: file.type,
     });
 
-  if (error) {
-    throw error;
-  }
+  if (error) throw error;
 
-  return data;
-};
-
-export const getFileUrl = (bucket, filePath) => {
-  if (!storageClient) {
-    throw new Error('Storage client not initialized');
-  }
-
-  const { data } = storageClient
-    .storage
+  const { data: urlData } = storageClient.storage
     .from(bucket)
     .getPublicUrl(filePath);
 
+  return {
+    path: filePath,
+    url: urlData.publicUrl,
+  };
+};
+
+// Delete a file from Supabase Storage
+export const deleteFileFromStorage = async (bucket, filePath) => {
+  if (!storageClient) throw new Error('Storage client not initialized');
+  const { error } = await storageClient.storage.from(bucket).remove([filePath]);
+  if (error) throw error;
+};
+
+// Get public URL for an existing file path
+export const getFileUrl = (bucket, filePath) => {
+  if (!storageClient) throw new Error('Storage client not initialized');
+  const { data } = storageClient.storage.from(bucket).getPublicUrl(filePath);
   return data.publicUrl;
 };
 
-export const deleteFileFromStorage = async (bucket, filePath) => {
-  if (!storageClient) {
-    throw new Error('Storage client not initialized');
+// Determine Supabase Storage bucket from file type
+export const getBucketForType = (type) => {
+  switch (type) {
+    case 'video': return 'videos';
+    case 'image': return 'images';
+    case 'audio': return 'audio';
+    default: return 'documents';
   }
-
-  const { error } = await storageClient
-    .storage
-    .from(bucket)
-    .remove([filePath]);
-
-  if (error) {
-    throw error;
-  }
-};
-
-export const generateStoragePath = (userId, fileName) => {
-  const timestamp = Date.now();
-  const sanitizedName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
-  return `${userId}/${timestamp}-${sanitizedName}`;
 };
