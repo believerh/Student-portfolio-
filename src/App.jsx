@@ -801,7 +801,8 @@ const App = () => {
       }
 
       if (data.user) {
-        if (data.user.email_confirmed_at) {
+        // Allow login if confirmed OR if email confirmation is disabled in Supabase
+        if (data.user.email_confirmed_at || data.user.confirmed_at || data.user.aud === 'authenticated') {
           setShowUnverifiedEmailNotification(false);
           setUnverifiedEmail('');
           const userRole = data.user.user_metadata.role || 'student';
@@ -828,6 +829,10 @@ const App = () => {
             if (teacherProfile && teacherProfile.length > 0) {
               user.dbId = teacherProfile[0].id;
               user.dashboard_link = teacherProfile[0].dashboard_link;
+            } else {
+              showNotification('Teacher profile not found. Ask admin to add your account.');
+              setIsLoggingIn(false);
+              return;
             }
             setCurrentUser({ ...user });
             setCurrentView('teacher');
@@ -889,11 +894,22 @@ const App = () => {
                 user.dbId = saved[0].id;
                 user.dashboard_link = saved[0].dashboard_link;
                 setStudents(prev => [...prev, saved[0]]);
+              } else {
+                showNotification('Error creating profile. Check Supabase RLS policies.');
+                setIsLoggingIn(false);
+                return;
               }
             } else {
               user.dbId = studentProfile[0].id;
               user.dashboard_link = studentProfile[0].dashboard_link;
             }
+
+            if (!user.dbId) {
+              showNotification('Could not load your profile. Please contact admin.');
+              setIsLoggingIn(false);
+              return;
+            }
+
             setCurrentUser({ ...user });
             setCurrentView('dashboard');
 
