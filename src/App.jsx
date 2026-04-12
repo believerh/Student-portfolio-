@@ -356,7 +356,7 @@ const App = () => {
       .channel('files-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'files' }, (payload) => {
         console.log('Files change detected:', payload);
-        
+
         if (payload.eventType === 'INSERT') {
           const newFile = payload.new;
           setFiles(prev => {
@@ -367,7 +367,15 @@ const App = () => {
               [newFile.student_id]: [...studentFiles, newFile]
             };
           });
-          // Note: Notification is already handled in handleFileUpload
+        } else if (payload.eventType === 'UPDATE') {
+          const updatedFile = payload.new;
+          setFiles(prev => {
+            const studentFiles = prev[updatedFile.student_id] || [];
+            return {
+              ...prev,
+              [updatedFile.student_id]: studentFiles.map(f => f.id === updatedFile.id ? { ...f, ...updatedFile } : f)
+            };
+          });
         } else if (payload.eventType === 'DELETE') {
           const deletedFile = payload.old;
           setFiles(prev => {
@@ -425,7 +433,7 @@ const App = () => {
       .channel('shares-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'shares' }, (payload) => {
         console.log('Shares change detected:', payload);
-        
+
         if (payload.eventType === 'INSERT') {
           const newShare = payload.new;
           setShares(prev => {
@@ -439,7 +447,23 @@ const App = () => {
               }
             };
           });
-          // Note: Notification is already handled in handleShareFile
+        } else if (payload.eventType === 'UPDATE') {
+          const updatedShare = payload.new;
+          setShares(prev => ({
+            ...prev,
+            [updatedShare.id]: {
+              fileId: updatedShare.file_id,
+              ownerId: updatedShare.owner_id,
+              recipientId: updatedShare.recipient_id,
+            }
+          }));
+        } else if (payload.eventType === 'DELETE') {
+          const oldShare = payload.old;
+          setShares(prev => {
+            const next = { ...prev };
+            delete next[oldShare.id];
+            return next;
+          });
         }
       })
       .subscribe();
@@ -450,7 +474,7 @@ const App = () => {
       .channel('comments-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, (payload) => {
         console.log('Comments change detected:', payload);
-        
+
         if (payload.eventType === 'INSERT') {
           const newComment = payload.new;
           setComments(prev => {
@@ -461,7 +485,24 @@ const App = () => {
               [newComment.file_id]: [...fileComments, newComment]
             };
           });
-          // Note: Notification is already handled in handleAddComment
+        } else if (payload.eventType === 'UPDATE') {
+          const updatedComment = payload.new;
+          setComments(prev => {
+            const fileComments = prev[updatedComment.file_id] || [];
+            return {
+              ...prev,
+              [updatedComment.file_id]: fileComments.map(c => c.id === updatedComment.id ? { ...c, ...updatedComment } : c)
+            };
+          });
+        } else if (payload.eventType === 'DELETE') {
+          const oldComment = payload.old;
+          setComments(prev => {
+            const fileComments = prev[oldComment.file_id] || [];
+            return {
+              ...prev,
+              [oldComment.file_id]: fileComments.filter(c => c.id !== oldComment.id)
+            };
+          });
         }
       })
       .subscribe();
@@ -501,51 +542,68 @@ const App = () => {
     // Subscribe to chat messages for real-time updates
     const chatChannel = supabase
       .channel('chat-messages')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, (payload) => {
-        console.log('New chat message received:', payload);
-        const newMessage = payload.new;
-        
-        // Add to local state
-        setChatMessages(prev => {
-          if (prev.some(m => m.id === newMessage.id)) {
-            console.log('Duplicate message, ignoring');
-            return prev;
-          }
-          console.log('Adding new message to chat:', newMessage);
-          return [...prev, newMessage];
-        });
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_messages' }, (payload) => {
+        console.log('Chat change received:', payload);
+        const row = payload.new || payload.old;
+
+        if (payload.eventType === 'INSERT') {
+          const newMessage = payload.new;
+          setChatMessages(prev => {
+            if (prev.some(m => m.id === newMessage.id)) return prev;
+            return [...prev, newMessage];
+          });
+        } else if (payload.eventType === 'UPDATE') {
+          const updatedMessage = payload.new;
+          setChatMessages(prev => prev.map(m => m.id === updatedMessage.id ? { ...m, ...updatedMessage } : m));
+        } else if (payload.eventType === 'DELETE') {
+          const oldMessage = payload.old;
+          setChatMessages(prev => prev.filter(m => m.id !== oldMessage.id));
+        }
       })
       .subscribe();
     channels.push(chatChannel);
 
-    // Subscribe to notifications table for real-time notifications from OTHER users
+    // Subscribe to notifications table for real-time notifications
     const notificationsChannel = supabase
       .channel('notifications-realtime')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, (payload) => {
-        console.log('New notification received:', payload);
-        const newNotif = payload.new;
-        
-        // Use ref to get current user to avoid stale closure
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, (payload) => {
+        console.log('Notification change received:', payload);
+
         const currentUser = currentUserRef.current;
-        // Only add notification if it's for the current user
         const targetUserId = currentUser?.role === 'admin' ? currentUser.id : currentUser?.dbId;
-        
-        if (newNotif.user_id === targetUserId) {
-          // Use functional update to check for duplicates
-          setNotifications(prev => {
-            // Avoid duplicate notifications
-            if (prev.some(n => n.id === newNotif.id)) {
-              return prev;
-            }
-            return [{
-              id: newNotif.id,
-              userId: newNotif.user_id,
-              message: newNotif.message,
-              type: newNotif.type,
-              read: newNotif.read,
-              timestamp: newNotif.created_at
-            }, ...prev];
-          });
+
+        if (payload.eventType === 'INSERT') {
+          const newNotif = payload.new;
+          if (newNotif.user_id === targetUserId) {
+            setNotifications(prev => {
+              if (prev.some(n => n.id === newNotif.id)) return prev;
+              return [{
+                id: newNotif.id,
+                userId: newNotif.user_id,
+                message: newNotif.message,
+                type: newNotif.type,
+                read: newNotif.read,
+                timestamp: newNotif.created_at
+              }, ...prev];
+            });
+          }
+        } else if (payload.eventType === 'UPDATE') {
+          const updatedNotif = payload.new;
+          if (updatedNotif.user_id === targetUserId) {
+            setNotifications(prev => prev.map(n => n.id === updatedNotif.id ? {
+              id: updatedNotif.id,
+              userId: updatedNotif.user_id,
+              message: updatedNotif.message,
+              type: updatedNotif.type,
+              read: updatedNotif.read,
+              timestamp: updatedNotif.created_at
+            } : n));
+          }
+        } else if (payload.eventType === 'DELETE') {
+          const oldNotif = payload.old;
+          if (oldNotif.user_id === targetUserId) {
+            setNotifications(prev => prev.filter(n => n.id !== oldNotif.id));
+          }
         }
       })
       .subscribe();
@@ -599,10 +657,19 @@ const App = () => {
     }
   };
 
-  const markNotificationRead = (notifId) => {
+  const markNotificationRead = async (notifId) => {
     setNotifications(prev => 
       prev.map(n => n.id === notifId ? { ...n, read: true } : n)
     );
+
+    // Persist read state in DB for real-time sync across sessions/devices
+    if (isConnected && supabase) {
+      try {
+        await supabase.from('notifications').update({ read: true }).eq('id', notifId);
+      } catch (err) {
+        console.error('Failed to mark notification as read in DB:', err);
+      }
+    }
   };
 
   // Mark all chat notifications as read
