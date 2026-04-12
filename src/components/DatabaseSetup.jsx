@@ -9,14 +9,16 @@ const DatabaseSetup = ({ darkMode, toggleDarkMode, showNotification, setSupabase
     const testConnection = async () => {
       setTesting(true);
       try {
-        const response = await fetch(`${setupData.url}/rest/v1/`, {
+        // Test with students table — works with anon key
+        const response = await fetch(`${setupData.url}/rest/v1/students?limit=1`, {
           headers: {
             'apikey': setupData.key,
             'Authorization': `Bearer ${setupData.key}`
           }
         });
         
-        if (response.ok) {
+        // 200 = connected, 401/403 = bad key, anything else could be empty table (still connected)
+        if (response.ok || response.status === 406) {
           showNotification('Connection successful!');
           localStorage.setItem('dbConfig', JSON.stringify(setupData));
           const client = createClient(setupData.url, setupData.key);

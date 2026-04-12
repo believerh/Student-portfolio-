@@ -264,14 +264,15 @@ const App = () => {
       return;
     }
 
-    // Try to connect
-    fetch(`${urlToTry}/rest/v1/`, {
+    // Try to connect using students table (works with anon key unlike root endpoint)
+    fetch(`${urlToTry}/rest/v1/students?limit=1`, {
       headers: {
         'apikey': keyToTry,
         'Authorization': `Bearer ${keyToTry}`
       }
     }).then(res => {
-      if (res.ok) {
+      // 200 = ok, 406 = no rows but connected, both mean valid credentials
+      if (res.ok || res.status === 406) {
         const client = createClient(urlToTry, keyToTry);
         setSupabase(client);
         setDbConfig({ url: urlToTry, key: keyToTry });
