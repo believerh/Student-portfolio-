@@ -198,7 +198,7 @@
 
 | Feature | Status | Session | Notes |
 |---------|--------|---------|-------|
-| 1.1 Full-Text Search | ⏳ | — | |
+| 1.1 Full-Text Search | ✅ | Done | Search across files, users, comments with filters |
 | 1.2 Analytics Dashboard | ⏳ | — | |
 | 1.3 Enhanced Notifications | ⏳ | — | |
 | 1.4 Drag & Drop Upload | ⏳ | — | |
