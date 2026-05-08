@@ -203,13 +203,13 @@
 | 1.3 Enhanced Notifications | ✅ | Done | Multi-type toasts, mark-all-read, clear-all, DB sync |
 | 1.4 Drag & Drop Upload Zone | ✅ | Done | Drag-and-drop file upload, multi-file queue, per-file progress, validation |
 | 1.5 Accessibility (WCAG 2.1 AA) | ✅ | Done | Aria labels, keyboard navigation (Escape close, Enter submit), focus trap, skip-link, screen reader announcements, color contrast audit |
-| 2.1 AI Content Analysis | ✅ | Done | Auto-tagging and summarization via Supabase Edge Function (OpenAI); fallback heuristics if undeployed
+| 2.1 AI Content Analysis | ✅ | Done | Auto-tagging and summarization via Supabase Edge Function (OpenAI); fallback heuristics if undeployed |
 | 2.2 Video/Audio Chat | ⏳ | — | |
 | 2.3 PWA + Offline | ✅ | Done | Service worker v4, offline.html, offline indicator, install banner
 | 2.4 Advanced File Preview | ✅ | Done | Image zoom/pan, video fullscreen, PDF render with react-pdf, audio controls |
 | 2.5 File Versioning | ✅ | Done | file_versions table, version history UI, restore previous versions, new version upload |
 | 2.6 AI Recommendations | ✅ | Done | Semantic search via pgvector; similar files panel in FileViewer (PDF, text, images via Vision API) |
-| 2.7 LMS Integrations | 🚧 | — | |
+| 2.7 LMS Integrations | 🚧 | — | Schema created (004_lms_integrations.sql). Deploy + connect backend. |
 | 3.1 Gamification | ⏳ | — | |
 | 3.2 Comment Threads | ⏳ | — | |
 | 3.3 Security Hardening | ⏳ | — | |
