@@ -200,7 +200,7 @@
 |---------|--------|---------|-------|
 | 1.1 Full-Text Search | ✅ | Done | Search across files, users, comments with filters |
 | 1.2 Analytics Dashboard | ✅ | Done | Recharts charts: bar, pie, line + stat cards |
-| 1.3 Enhanced Notifications | ⏳ | — | |
+| 1.3 Enhanced Notifications | ✅ | Done | Multi-type toasts, mark-all-read, clear-all, DB sync |
 | 1.4 Drag & Drop Upload | ⏳ | — | |
 | 1.5 Accessibility | ⏳ | — | |
 | 2.1 AI Content Analysis | ⏳ | — | |
