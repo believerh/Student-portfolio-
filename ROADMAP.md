@@ -199,7 +199,7 @@
 | Feature | Status | Session | Notes |
 |---------|--------|---------|-------|
 | 1.1 Full-Text Search | ✅ | Done | Search across files, users, comments with filters |
-| 1.2 Analytics Dashboard | ⏳ | — | |
+| 1.2 Analytics Dashboard | ✅ | Done | Recharts charts: bar, pie, line + stat cards |
 | 1.3 Enhanced Notifications | ⏳ | — | |
 | 1.4 Drag & Drop Upload | ⏳ | — | |
 | 1.5 Accessibility | ⏳ | — | |
