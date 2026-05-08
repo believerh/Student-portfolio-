@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Send, Mic, MicOff, Users, User, MessageCircle, Volume2, Trash2, MessageSquare, Smile, Edit2, Repeat } from 'lucide-react';
+import { X, Send, Mic, MicOff, Users, User, MessageCircle, Volume2, Trash2, MessageSquare, Smile, Edit2 } from 'lucide-react';
 
 const ChatModal = ({
   showChat,
@@ -427,7 +427,7 @@ const ChatModal = ({
               type="text"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
               placeholder={isRecording ? 'Recording...' : 'Type a message...'}
               disabled={isRecording}
               className={`flex-1 p-2 sm:p-3 rounded-xl border-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-sm sm:text-base ${

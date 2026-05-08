@@ -1,13 +1,6 @@
 // AI Utility Functions for Student Portfolio System
 // Integrates with external AI services for advanced features
 
-const AI_CONFIG = {
-  // These would be set via environment variables in production
-  OPENAI_API_KEY: process.env.REACT_APP_OPENAI_API_KEY || '',
-  HUGGINGFACE_API_KEY: process.env.REACT_APP_HUGGINGFACE_API_KEY || '',
-  // Using free tiers/APIs where possible for demo/educational purposes
-};
-
 /**
  * Generate tags for a file based on its content/type
  * @param {File} file - The file to analyze
@@ -200,10 +193,12 @@ export const analyzeSentiment = async (text) => {
   }
 };
 
-export default {
+const aiUtils = {
   generateFileTags,
   extractTextContent,
   generateSummary,
   translateText,
   analyzeSentiment
 };
+
+export default aiUtils;

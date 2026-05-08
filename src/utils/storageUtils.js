@@ -3,13 +3,15 @@ import { createClient } from '@supabase/supabase-js';
 let storageClient = null;
 
 export const initStorageClient = (url, key) => {
-  if (!storageClient) {
-    storageClient = createClient(url, key);
-  }
+  storageClient = createClient(url, key);
   return storageClient;
 };
 
 export const getStorageClient = () => storageClient;
+
+export const resetStorageClient = () => {
+  storageClient = null;
+};
 
 // Upload a file to Supabase Storage and return its public URL
 export const uploadFileToStorage = async (bucket, userId, file) => {
