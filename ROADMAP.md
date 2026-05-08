@@ -206,7 +206,7 @@
 | 2.1 AI Content Analysis | ⏳ | — | |
 | 2.2 Video/Audio Chat | ⏳ | — | |
 | 2.3 PWA + Offline | ⏳ | — | |
-| 2.4 Advanced Preview | ⏳ | — | |
+| 2.4 Advanced File Preview | ✅ | Done | Image zoom/pan, video fullscreen, PDF render with react-pdf, audio controls |
 | 2.5 File Versioning | ✅ | Done | file_versions table, version history UI, restore previous versions, new version upload |
 | 2.6 AI Recommendations | ⏳ | — | |
 | 2.7 LMS Integrations | ⏳ | — | |
