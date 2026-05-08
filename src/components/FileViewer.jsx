@@ -605,10 +605,10 @@ const FileViewer = memo(function FileViewer(props) {
           )}
 
           {file.type === 'image' && (
-            <div className="relative overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-900" style={{ cursor: zoom > 1 ? 'grab' : 'default' }}>
+            <div className="relative overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-900 max-w-full" style={{ cursor: zoom > 1 ? 'grab' : 'default' }}>
               {mediaLoading && (
                 <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg h-48 sm:h-96 z-10">
-                  <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+                  <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 animate-spin text-gray-400" />
                 </div>
               )}
               <div

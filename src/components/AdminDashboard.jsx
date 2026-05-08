@@ -133,9 +133,9 @@ const AdminDashboard = ({
                 </span>
               )}
             </button>
-            <div className="flex items-center gap-2 px-4 py-2 bg-gray-900/50 border border-cyan-500/30">
+            <div className="flex items-center gap-2 px-2 sm:px-4 py-2 bg-gray-900/50 border border-cyan-500/30">
               <User className="w-5 h-5" />
-              <span>ROOT_ADMIN</span>
+              <span className="hidden sm:inline">ROOT_ADMIN</span>
             </div>
             <button
               onClick={() => { localStorage.removeItem('appSessionUser'); setCurrentUser(null); setCurrentView('login'); }}
@@ -148,7 +148,7 @@ const AdminDashboard = ({
         </div>
       </nav>
 
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6">
         {/* Full-Text Search */}
         <SearchBar onSearch={handleSearch} className="mb-6" filters={{ types: true, dateRange: true, role: true }} />
         <SearchResult
@@ -158,7 +158,7 @@ const AdminDashboard = ({
         />
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
           <div className="bg-gray-900/60 border border-cyan-500/30 p-5 relative overflow-hidden group hover:border-cyan-400 transition-all">
             <div className="absolute top-0 left-0 w-1 h-full bg-cyan-500"></div>
             <div className="text-gray-500 text-sm uppercase tracking-wider mb-2">Total Users</div>
@@ -212,31 +212,31 @@ const AdminDashboard = ({
             <div className="space-y-2">
               <button
                 onClick={() => setShowAddStudentModal(true)}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-green-500/30 text-green-400 hover:bg-green-500/10 hover:border-green-400 transition-all"
+                className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg border border-green-500/30 text-green-400 hover:bg-green-500/10 hover:border-green-400 transition-all"
               >
-                <UserPlus className="w-5 h-5" />
-                + ADD_STUDENT
+                <UserPlus className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="text-sm sm:text-base">+ ADD_STUDENT</span>
               </button>
               <button
                 onClick={() => setShowAddTeacherModal(true)}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:border-purple-400 transition-all"
+                className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg border border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:border-purple-400 transition-all"
               >
-                <UserPlus className="w-5 h-5" />
-                + ADD_TEACHER
+                <UserPlus className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="text-sm sm:text-base">+ ADD_TEACHER</span>
               </button>
               <button
                 onClick={() => setShowInviteModal(true)}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 hover:border-cyan-400 transition-all"
+                className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 hover:border-cyan-400 transition-all"
               >
-                <Mail className="w-5 h-5" />
-                <span>&gt; INVITE_USER</span>
+                <Mail className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="text-sm sm:text-base">&gt; INVITE_USER</span>
               </button>
               <button
                 onClick={() => setShowLMSModal(true)}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 hover:border-indigo-400 transition-all"
+                className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg border border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 hover:border-indigo-400 transition-all"
               >
-                <Link className="w-5 h-5" />
-                <span>&gt; LMS_INTEGRATIONS</span>
+                <Link className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="text-sm sm:text-base">&gt; LMS_INTEGRATIONS</span>
               </button>
             </div>
 
