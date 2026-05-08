@@ -1,8 +1,10 @@
+/* eslint-disable no-unused-vars */
 import React, { useState, useMemo, memo } from 'react';
 import { Upload, FileText, Image, Video, Music, User, LogOut, Eye, Link2, Bell, Moon, Sun, Share2, Inbox, MessageCircle } from 'lucide-react';
 import FileViewer from './FileViewer';
 import SearchBar from './common/SearchBar';
 import SearchResult from './common/SearchResult';
+import DropZone from './common/DropZone';
 
 const StudentDashboard = (props) => {
   const {
@@ -251,70 +253,16 @@ const StudentDashboard = (props) => {
                 </button>
               ))}
             </div>
-            <div className={`border-2 border-dashed ${darkMode ? 'border-gray-600 hover:border-indigo-500' : 'border-gray-300 hover:border-indigo-400'} rounded-xl p-4 sm:p-8 text-center transition-all duration-300`}>
-              <input
-                type="file"
-                id="file-upload"
-                accept={fileType === 'video' ? 'video/*' : fileType === 'image' ? 'image/*' : fileType === 'audio' ? 'audio/*' : '.pdf,.doc,.docx,.txt,.md'}
-                onChange={(e) => {
-                  if (e.target.files[0]) {
-                    const selectedFile = e.target.files[0];
-                    const fileType2 = fileType;
-                    const fileName = selectedFile.name.toLowerCase();
-                    
-                    if (fileType2 === 'video') {
-                      const validTypes = ['video/'];
-                      const validExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.flv', '.wmv', '.m4v'];
-                      const hasValidType = validTypes.some(t => selectedFile.type.startsWith(t));
-                      const hasValidExt = validExtensions.some(ext => fileName.endsWith(ext));
-                      if (!hasValidType && !hasValidExt) {
-                        alert('Please select a valid video file (MP4, WebM, MOV, AVI, MKV)');
-                        return;
-                      }
-                    }
-                    if (fileType2 === 'image') {
-                      const validTypes = ['image/'];
-                      const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.ico'];
-                      const hasValidType = validTypes.some(t => selectedFile.type.startsWith(t));
-                      const hasValidExt = validExtensions.some(ext => fileName.endsWith(ext));
-                      if (!hasValidType && !hasValidExt) {
-                        alert('Please select a valid image file (JPG, PNG, GIF, WebP, SVG)');
-                        return;
-                      }
-                    }
-                    if (fileType2 === 'audio') {
-                      const validTypes = ['audio/'];
-                      const validExtensions = ['.mp3', '.wav', '.ogg', '.flac', '.m4a', '.aac', '.wma'];
-                      const hasValidType = validTypes.some(t => selectedFile.type.startsWith(t));
-                      const hasValidExt = validExtensions.some(ext => fileName.endsWith(ext));
-                      if (!hasValidType && !hasValidExt) {
-                        alert('Please select a valid audio file (MP3, WAV, OGG, FLAC)');
-                        return;
-                      }
-                    }
-                    if (fileType2 === 'text') {
-                      const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain', 'text/markdown', 'application/json'];
-                      const validExtensions = ['.pdf', '.doc', '.docx', '.txt', '.md', '.json'];
-                      const hasValidType = validTypes.some(t => selectedFile.type.includes(t));
-                      const hasValidExt = validExtensions.some(ext => fileName.endsWith(ext));
-                      if (!hasValidType && !hasValidExt) {
-                        alert('Please select a valid document file (PDF, DOC, DOCX, TXT, MD)');
-                        return;
-                      }
-                    }
-                    
-                    handleFileUpload(currentUser.dbId, selectedFile, fileType);
-                    e.target.value = '';
-                  }
-                }}
-                className="hidden"
-              />
-              <label htmlFor="file-upload" className="cursor-pointer">
-                <Upload className={`w-12 h-12 mx-auto mb-3 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
-                <p className={`${darkMode ? 'text-gray-300' : 'text-gray-600'} font-semibold mb-1`}>Click to upload</p>
-                <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Selected type: <span className="capitalize font-semibold text-indigo-600">{fileType}</span></p>
-              </label>
-            </div>
+            <DropZone
+              fileType={fileType}
+              darkMode={darkMode}
+              maxSizeMB={15360}
+              onUpload={async (file, type, uploadId, onProgress) => {
+                onProgress(10);
+                await handleFileUpload(currentUser.dbId, file, type);
+                onProgress(100);
+              }}
+            />
           </div>
         )}
 
