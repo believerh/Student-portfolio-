@@ -1639,18 +1639,63 @@ const App = () => {
           [actualStudentId]: [...(prev[actualStudentId] || []), savedFile]
         }));
 
-        // Process file with AI for tags and summary
+        // AI Content Analysis via Edge Function
         try {
+          // Extract text for analysis (for text-based files)
+          let extractedText = '';
+          if (fileType === 'text' || file.type.startsWith('text/')) {
+            extractedText = await extractTextContent(file);
+          }
+
+          // Invoke Edge Function
+          const { data: aiResult, error: aiError } = await supabase.functions.invoke('ai-analysis', {
+            body: {
+              fileId: savedFile.id,
+              fileType,
+              fileName: file.name,
+              textContent: extractedText
+            }
+          });
+
+          if (aiError) throw aiError;
+
+          if (aiResult) {
+            const tags = aiResult.tags || [];
+            const summary = aiResult.summary || '';
+
+            // Save tags
+            const tagPromises = tags.map(tag =>
+              saveToDatabase('file_tags', {
+                file_id: savedFile.id,
+                tag: tag,
+                confidence: 0.9
+              })
+            );
+            await Promise.all(tagPromises);
+
+            // Save summary if available and file type supports it
+            if (summary && (fileType === 'text' || file.type.startsWith('text/'))) {
+              await saveToDatabase('file_summaries', {
+                file_id: savedFile.id,
+                summary: summary,
+                language: 'en'
+              });
+            }
+          }
+        } catch (aiError) {
+          console.warn('AI processing failed, falling back to local heuristics:', aiError);
+          // Fallback: basic tags from filename
           const tags = await generateFileTags(file, fileType);
           const tagPromises = tags.map(tag =>
             saveToDatabase('file_tags', {
               file_id: savedFile.id,
               tag: tag,
-              confidence: 0.8
+              confidence: 0.5
             })
           );
           await Promise.all(tagPromises);
 
+          // Basic summary for text files
           if (fileType === 'text' || file.type.startsWith('text/')) {
             const content = await extractTextContent(file);
             if (content && content.trim() !== '') {
@@ -1662,8 +1707,6 @@ const App = () => {
               });
             }
           }
-        } catch (aiError) {
-          console.warn('AI processing failed:', aiError);
         }
 
         addNotification('admin_001', `New file uploaded by ${currentUser.name}: ${file.name}`, 'upload');
