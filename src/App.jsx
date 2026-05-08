@@ -2290,6 +2290,8 @@ const App = () => {
             searchResults={searchResults}
             searchState={searchState}
           />
+            showNotification={showNotification}
+            supabase={supabase}
         </Suspense>
       )}
       </main>

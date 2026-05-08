@@ -37,6 +37,8 @@ const AdminDashboard = ({
   handleSearch,
   searchResults,
   searchState,
+  showNotification,
+  supabase,
   }) => {
   const [viewTab, setViewTab] = useState('all');
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -470,8 +472,21 @@ const AdminDashboard = ({
       {showLMSModal && (
         <LMSSettingsModal
           onClose={() => setShowLMSModal(false)}
-          onSave={(connection) => {
-            setLmsConnections([...lmsConnections, connection]);
+          onSave={async (connection) => {
+            const { lms_type, name, base_url, api_token } = connection;
+            const { error } = await supabase.from('lms_connections').insert({
+              id: crypto.randomUUID(),
+              lms_type,
+              name,
+              base_url,
+              api_token,
+              created_at: new Date().toISOString(),
+              status: 'connected'
+            });
+            if (!error) {
+              setLmsConnections([...lmsConnections, { ...connection, id: crypto.randomUUID() }]);
+              showNotification('LMS connection saved', 'success');
+            }
           }}
           connections={lmsConnections}
         />
