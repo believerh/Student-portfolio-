@@ -203,7 +203,7 @@
 | 1.3 Enhanced Notifications | ✅ | Done | Multi-type toasts, mark-all-read, clear-all, DB sync |
 | 1.4 Drag & Drop Upload Zone | ✅ | Done | Drag-and-drop file upload, multi-file queue, per-file progress, validation |
 | 1.5 Accessibility (WCAG 2.1 AA) | ✅ | Done | Aria labels, keyboard navigation (Escape close, Enter submit), focus trap, skip-link, screen reader announcements, color contrast audit |
-| 2.1 AI Content Analysis | ⏳ | — | |
+| 2.1 AI Content Analysis | ✅ | Done | Auto-tagging and summarization via Supabase Edge Function (OpenAI); fallback heuristics if undeployed
 | 2.2 Video/Audio Chat | ⏳ | — | |
 | 2.3 PWA + Offline | ✅ | Done | Service worker v4, offline.html, offline indicator, install banner
 | 2.4 Advanced File Preview | ✅ | Done | Image zoom/pan, video fullscreen, PDF render with react-pdf, audio controls |
