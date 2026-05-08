@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, Bell, MessageCircle, FileText, Heart, Share2, Send, CheckCheck, Trash2 } from 'lucide-react';
+import { useKeyboardClose } from '../../hooks/a11y';
 
 const NotificationPanel = ({
   showNotificationPanel,
@@ -12,6 +13,8 @@ const NotificationPanel = ({
   darkMode,
   setShowChat,
 }) => {
+  useKeyboardClose(showNotificationPanel, () => setShowNotificationPanel(false));
+
   if (!showNotificationPanel) return null;
 
   // Use dbId for students/teachers, id for admin
@@ -63,14 +66,23 @@ const NotificationPanel = ({
   };
 
   return (
-    <div className="fixed top-12 sm:top-16 right-2 sm:right-4 z-50 animate-slide-down">
+    <div
+      role="dialog"
+      aria-modal="false"
+      aria-label="Notifications"
+      className="fixed top-12 sm:top-16 right-2 sm:right-4 z-50 animate-slide-down"
+    >
       <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white'} rounded-xl shadow-2xl border-2 w-[calc(100vw-16px)] sm:w-96 max-h-[80vh] overflow-y-auto`}>
         <div className={`p-3 sm:p-4 border-b-2 ${darkMode ? 'border-gray-700' : 'border-gray-200'} sticky top-0 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
           <div className="flex justify-between items-center mb-2">
             <h3 className={`font-bold text-sm sm:text-base ${darkMode ? 'text-white' : 'text-gray-800'}`}>
               Notifications {unreadCount > 0 && `(${unreadCount})`}
             </h3>
-            <button onClick={() => setShowNotificationPanel(false)}>
+            <button
+              onClick={() => setShowNotificationPanel(false)}
+              aria-label="Close notifications panel"
+              className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            >
               <X className={`w-5 h-5 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`} />
             </button>
           </div>

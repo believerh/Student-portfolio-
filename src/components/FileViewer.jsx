@@ -1,5 +1,6 @@
 import React, { useState, memo, useEffect, useRef } from 'react';
 import { FileText, Image, Video, Music, Eye, Trash2, Share2, MessageSquare, Heart, Send, X, Loader2, CircleHelp, Download, RefreshCw } from 'lucide-react';
+import { useKeyboardClose } from '../hooks/a11y';
 
 const FileViewer = memo(function FileViewer(props) {
   const {
@@ -26,6 +27,7 @@ const FileViewer = memo(function FileViewer(props) {
   const [fileTags, setFileTags] = useState([]);
   const [fileSummary, setFileSummary] = useState('');
   const [showSummary, setShowSummary] = useState(false);
+  useKeyboardClose(showPreview, () => setShowPreview(false));
   const mediaRef = useRef(null);
 
   useEffect(() => {
@@ -174,6 +176,8 @@ const FileViewer = memo(function FileViewer(props) {
             <>
               <button
                 onClick={() => handleLikeFile(file.id)}
+                aria-label={isLiked ? 'Unlike file' : 'Like file'}
+                aria-pressed={isLiked}
                 className={`flex items-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-all ${
                   isLiked
                     ? 'bg-red-100 text-red-600'
@@ -185,6 +189,8 @@ const FileViewer = memo(function FileViewer(props) {
               </button>
               <button
                 onClick={() => setShowComments(!showComments)}
+                aria-label={`${showComments ? 'Hide' : 'Show'} comments`}
+                aria-expanded={showComments}
                 className={`flex items-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg ${darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'} transition-all`}
               >
                 <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -232,6 +238,9 @@ const FileViewer = memo(function FileViewer(props) {
           )}
           <button
             onClick={() => setShowPreview(!showPreview)}
+            aria-expanded={showPreview}
+            aria-controls={`file-preview-${file.id}`}
+            aria-label={showPreview ? 'Close file preview' : 'View file preview'}
             className={`flex items-center gap-1 px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg ${darkMode ? 'bg-indigo-900 text-indigo-300 hover:bg-indigo-800' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'} transition-all duration-200 text-xs sm:text-sm`}
           >
             {showPreview ? <X className="w-3 h-3 sm:w-4 sm:h-4" /> : <Eye className="w-3 h-3 sm:w-4 sm:h-4" />}
@@ -240,6 +249,7 @@ const FileViewer = memo(function FileViewer(props) {
           {canDelete && (
             <button
               onClick={() => onDelete(file.id)}
+              aria-label="Delete file"
               className={`${darkMode ? 'text-red-400 hover:bg-red-900/20' : 'text-red-500 hover:bg-red-50'} p-1.5 sm:p-2 rounded-lg transition-all duration-200`}
             >
               <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -278,6 +288,7 @@ const FileViewer = memo(function FileViewer(props) {
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
               className={`flex-1 p-2 text-sm border-2 ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-200'} rounded-lg focus:border-indigo-500 outline-none`}
+              aria-label="Add a comment"
             />
             <button
               onClick={() => {
@@ -286,6 +297,7 @@ const FileViewer = memo(function FileViewer(props) {
                   setCommentText('');
                 }
               }}
+              aria-label="Send comment"
               className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:shadow-lg transition-all"
             >
               <Send className="w-4 h-4" />
@@ -296,7 +308,12 @@ const FileViewer = memo(function FileViewer(props) {
 
       {/* Media preview */}
       {showPreview && (
-        <div className={`p-2 sm:p-4 ${darkMode ? 'bg-gray-900 border-t-2 border-gray-700' : 'bg-gray-50 border-t-2 border-gray-200'} animate-slide-down`}>
+        <div
+          id={`file-preview-${file.id}`}
+          role="region"
+          aria-label={`File preview: ${file.name}`}
+          className={`p-2 sm:p-4 ${darkMode ? 'bg-gray-900 border-t-2 border-gray-700' : 'bg-gray-50 border-t-2 border-gray-200'} animate-slide-down`}
+        >
           <div className="mb-2">
             <div className="flex items-center justify-between">
               <h3 className={`font-semibold text-sm ${darkMode ? 'text-white' : 'text-gray-800'}`}>{file.name}</h3>

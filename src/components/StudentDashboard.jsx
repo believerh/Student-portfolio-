@@ -122,12 +122,14 @@ const StudentDashboard = (props) => {
           <div className="flex items-center gap-2 sm:gap-4">
             <button
               onClick={toggleDarkMode}
+              aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
               className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-all"
             >
               {darkMode ? <Sun className="w-4 h-4 sm:w-5 sm:h-5" /> : <Moon className="w-4 h-4 sm:w-5 sm:h-5" />}
             </button>
             <button
               onClick={() => setShowNotificationPanel(true)}
+              aria-label="Open notifications"
               className="relative p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-all"
             >
               <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -139,6 +141,7 @@ const StudentDashboard = (props) => {
             </button>
             <button
               onClick={() => setShowChat(true)}
+              aria-label="Open chat"
               className="relative p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-all"
             >
               <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -153,7 +156,11 @@ const StudentDashboard = (props) => {
               <span className="hidden sm:inline text-sm">{currentUser?.name || 'Student'}</span>
               <span className="sm:hidden text-xs">{currentUser?.name?.split(' ')[0] || 'S'}</span>
             </div>
-            <button onClick={() => { localStorage.removeItem('appSessionUser'); setCurrentUser(null); setCurrentView('login'); }} className="flex items-center gap-1 sm:gap-2 bg-white/20 hover:bg-white/30 px-2 sm:px-4 py-2 rounded-lg transition-all duration-200 text-xs sm:text-sm">
+            <button
+              onClick={() => { localStorage.removeItem('appSessionUser'); setCurrentUser(null); setCurrentView('login'); }}
+              aria-label="Logout"
+              className="flex items-center gap-1 sm:gap-2 bg-white/20 hover:bg-white/30 px-2 sm:px-4 py-2 rounded-lg transition-all duration-200 text-xs sm:text-sm"
+            >
               <LogOut className="w-3 h-4 sm:w-4 sm:h-4" />
               <span className="hidden sm:inline">Logout</span>
             </button>

@@ -101,12 +101,14 @@ const AdminDashboard = ({
             </div>
             <button
               onClick={toggleDarkMode}
+              aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
               className="p-2 rounded-lg bg-gray-900/50 border border-cyan-500/30 hover:border-cyan-400 transition-all"
             >
               {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
             <button
               onClick={() => setShowNotificationPanel(true)}
+              aria-label="Open notifications"
               className="relative p-2 rounded-lg bg-gray-900/50 border border-cyan-500/30 hover:border-cyan-400 transition-all"
             >
               <Bell className="w-5 h-5" />
@@ -118,6 +120,7 @@ const AdminDashboard = ({
             </button>
             <button
               onClick={() => setShowChat(true)}
+              aria-label="Open chat"
               className="relative p-2 rounded-lg bg-gray-900/50 border border-cyan-500/30 hover:border-cyan-400 transition-all"
             >
               <MessageCircle className="w-5 h-5" />

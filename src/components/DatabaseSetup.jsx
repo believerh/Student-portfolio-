@@ -367,23 +367,27 @@ CREATE POLICY "Enable all for shares" ON shares FOR ALL USING (true);
 
           <div className="space-y-4">
             <div>
-              <label className={`block text-sm font-semibold ${darkMode ? 'text-gray-200' : 'text-gray-700'} mb-2`}>Supabase Project URL</label>
+              <label className={`block text-sm font-semibold ${darkMode ? 'text-gray-200' : 'text-gray-700'} mb-2`} htmlFor="supabase-url">Supabase Project URL</label>
               <input
+                id="supabase-url"
                 type="text"
                 placeholder="https://your-project.supabase.co"
                 className={`w-full p-3 border-2 ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-200'} rounded-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all outline-none`}
                 value={setupData.url}
                 onChange={(e) => setSetupData({ ...setupData, url: e.target.value })}
+                aria-required="true"
               />
             </div>
             <div>
-              <label className={`block text-sm font-semibold ${darkMode ? 'text-gray-200' : 'text-gray-700'} mb-2`}>Supabase Anon Key</label>
+              <label className={`block text-sm font-semibold ${darkMode ? 'text-gray-200' : 'text-gray-700'} mb-2`} htmlFor="supabase-key">Supabase Anon Key</label>
               <input
+                id="supabase-key"
                 type="password"
                 placeholder="Your anon public key"
                 className={`w-full p-3 border-2 ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-200'} rounded-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all outline-none`}
                 value={setupData.key}
                 onChange={(e) => setSetupData({ ...setupData, key: e.target.value })}
+                aria-required="true"
               />
             </div>
             <div className="flex gap-3">

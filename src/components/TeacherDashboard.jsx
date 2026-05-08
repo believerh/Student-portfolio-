@@ -142,12 +142,14 @@ const TeacherDashboard = (props) => {
           <div className="flex items-center gap-4">
             <button
               onClick={toggleDarkMode}
+              aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
               className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-all"
             >
               {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
             <button
               onClick={() => setShowNotificationPanel(true)}
+              aria-label="Open notifications"
               className="relative p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-all"
             >
               <Bell className="w-5 h-5" />
@@ -159,6 +161,7 @@ const TeacherDashboard = (props) => {
             </button>
             <button
               onClick={() => setShowChat(true)}
+              aria-label="Open chat"
               className="relative p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-all"
             >
               <MessageCircle className="w-5 h-5" />

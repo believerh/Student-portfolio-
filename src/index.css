@@ -34,7 +34,24 @@
 .dark ::-webkit-scrollbar-thumb:hover { background: #8b5cf6; }
 
 /* Focus states */
-*:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; }
+*:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; border-radius: 4px; }
+*:focus:not(:focus-visible) { outline: none; }
+
+/* Skip link */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #6366f1;
+  color: white;
+  padding: 8px 16px;
+  z-index: 9999;
+  transition: top 0.2s;
+  font-weight: 600;
+}
+.skip-link:focus {
+  top: 0;
+}
 
 /* Smooth scrolling */
 html { scroll-behavior: smooth; }

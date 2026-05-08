@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { X, Users, Send, FileText, FileAudio, FileImage, FileVideo, Check, CloudUpload, Trash2 } from 'lucide-react';
+import { useKeyboardClose, useFocusTrap } from '../../hooks/a11y';
 
 const SendFileModal = ({
   showSendFileModal,
@@ -16,6 +17,8 @@ const SendFileModal = ({
   const [fileInputKey, setFileInputKey] = useState(0);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
+  useKeyboardClose(showSendFileModal, () => setShowSendFileModal(false));
+  const sendFileContainerRef = useFocusTrap(showSendFileModal);
 
   if (!showSendFileModal) return null;
 
@@ -29,12 +32,12 @@ const SendFileModal = ({
     const fileName = file.name.toLowerCase();
     const validExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.flv', '.wmv', '.m4v', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.ico', '.mp3', '.wav', '.ogg', '.flac', '.m4a', '.aac', '.wma', '.pdf', '.doc', '.docx', '.txt', '.md'];
     const hasValidExt = validExtensions.some(ext => fileName.endsWith(ext));
-    
+
     if (!hasValidExt) {
       alert('Invalid file type. Please select a video, image, audio, or document file.');
       return;
     }
-    
+
     setSelectedFile(file);
   };
 
@@ -79,7 +82,7 @@ const SendFileModal = ({
     const recipientIds = sendToAll ? (students || []).map(s => s.id) : selectedStudents;
     await handleSendFileToStudents(selectedFile, recipientIds, fileNote);
     setSending(false);
-    
+
     // Reset and close
     setSelectedFile(null);
     setFileNote('');
@@ -129,9 +132,15 @@ const SendFileModal = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-2 sm:p-4">
+    <div
+      ref={sendFileContainerRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Send files dialog"
+      className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-2 sm:p-4"
+    >
       <div className={`${darkMode ? 'bg-gray-900' : 'bg-white'} rounded-2xl sm:rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl transform transition-all`}>
-        
+
         {/* Animated Header */}
         <div className="relative overflow-hidden flex-shrink-0">
           <div className={`absolute inset-0 bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600`}></div>
@@ -148,14 +157,15 @@ const SendFileModal = ({
                 </div>
               </div>
               <button 
-                onClick={() => { setShowSendFileModal(false); }} 
+                onClick={() => { setShowSendFileModal(false); }}
                 className="p-1.5 sm:p-2 hover:bg-white/20 rounded-xl transition-all"
+                aria-label="Close send file dialog"
               >
                 <X className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </button>
             </div>
           </div>
-          
+
           {/* Wave decoration - hidden on small screens */}
           <div className="absolute bottom-0 left-0 right-0 hidden sm:block">
             <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full">
@@ -165,22 +175,23 @@ const SendFileModal = ({
         </div>
 
         <div className={`${darkMode ? 'bg-gray-900' : 'bg-white'} p-4 sm:p-8 space-y-4 sm:space-y-6 overflow-y-auto max-h-[calc(90vh-120px)]`}>
-          
+
           {/* File Drop Zone */}
           <div>
             <label className={`block text-sm font-semibold ${darkMode ? 'text-gray-200' : 'text-gray-700'} mb-2 sm:mb-3`}>
               📁 Select File
             </label>
-            
+
             {selectedFile ? (
               <div className={`relative rounded-xl sm:rounded-2xl border-2 border-violet-500/50 bg-gradient-to-br ${darkMode ? 'from-gray-800 to-gray-900' : 'from-violet-50 to-purple-50'} p-3 sm:p-6`}>
                 <button
                   onClick={removeFile}
+                  aria-label="Remove selected file"
                   className="absolute top-2 right-2 sm:top-3 sm:right-3 p-1.5 sm:p-2 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-all"
                 >
                   <Trash2 className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />
                 </button>
-                
+
                 <div className="flex items-center gap-3 sm:gap-5">
                   <div className={`w-14 h-14 sm:w-20 sm:h-20 bg-gradient-to-br ${getFileColor(selectedFile)} rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg`}>
                     {getFileIcon(selectedFile)}
@@ -205,10 +216,10 @@ const SendFileModal = ({
                 onDragOver={handleDrag}
                 onDrop={handleDrop}
                 className={`relative rounded-xl sm:rounded-2xl border-2 border-dashed transition-all duration-300 ${
-                  dragActive 
-                    ? 'border-violet-500 bg-violet-500/10 scale-[1.02]' 
-                    : darkMode 
-                      ? 'border-gray-700 hover:border-violet-500 bg-gray-800/50' 
+                  dragActive
+                    ? 'border-violet-500 bg-violet-500/10 scale-[1.02]'
+                    : darkMode
+                      ? 'border-gray-700 hover:border-violet-500 bg-gray-800/50'
                       : 'border-gray-300 hover:border-violet-400 bg-gray-50'
                 }`}
               >
@@ -253,8 +264,8 @@ const SendFileModal = ({
               value={fileNote}
               onChange={(e) => setFileNote(e.target.value)}
               className={`w-full p-3 sm:p-4 border-2 rounded-xl focus:outline-none focus:ring-4 focus:ring-violet-500/20 transition-all resize-none text-sm sm:text-base ${
-                darkMode 
-                  ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500' 
+                darkMode
+                  ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500'
                   : 'bg-gray-50 border-gray-200 text-gray-800 placeholder-gray-400'
               }`}
             />
@@ -269,10 +280,10 @@ const SendFileModal = ({
               <button
                 onClick={() => { setSendToAll(!sendToAll); if (!sendToAll) setSelectedStudents([]); }}
                 className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-medium transition-all ${
-                  sendToAll 
-                    ? 'bg-gradient-to-r from-violet-500 to-purple-500 text-white shadow-lg' 
-                    : darkMode 
-                      ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                  sendToAll
+                    ? 'bg-gradient-to-r from-violet-500 to-purple-500 text-white shadow-lg'
+                    : darkMode
+                      ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                       : 'bg-violet-100 text-violet-600 hover:bg-violet-200'
                 }`}
               >
@@ -281,7 +292,7 @@ const SendFileModal = ({
                 <span className="sm:hidden">{sendToAll ? '✓ All' : 'All'}</span>
               </button>
             </div>
-            
+
             {!sendToAll && (
               <div className={`border-2 rounded-xl sm:rounded-2xl max-h-40 sm:max-h-52 overflow-y-auto ${darkMode ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-gray-50'}`}>
                 {students.length === 0 ? (
@@ -302,7 +313,7 @@ const SendFileModal = ({
                           type="checkbox"
                           checked={selectedStudents.includes(student.id)}
                           onChange={() => handleStudentToggle(student.id)}
-                          className="hidden"
+                          className="sr-only"
                         />
                         <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center text-white font-bold shadow-md flex-shrink-0`}>
                           {(student.name || '?').charAt(0).toUpperCase()}
@@ -324,7 +335,7 @@ const SendFileModal = ({
                 )}
               </div>
             )}
-            
+
             {!sendToAll && students.length > 0 && (
               <p className={`text-xs sm:text-sm mt-2 sm:mt-3 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                 {selectedStudents.length} student{selectedStudents.length !== 1 ? 's' : ''} selected

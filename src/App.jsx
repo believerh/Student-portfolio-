@@ -13,6 +13,7 @@ import { performSearch } from './utils/searchUtils';
 import { API_CONFIG } from './utils/apiConfig';
 import { initStorageClient, uploadFileToStorage, deleteFileFromStorage, getBucketForType } from './utils/storageUtils';
 import { generateFileTags, extractTextContent, generateSummary } from './utils/aiUtils';
+import { useAnnounce } from './hooks/a11y';
 
 // Lazy load dashboard components for code splitting
 const StudentDashboard = lazy(() => import('./components/StudentDashboard'));
@@ -1871,6 +1872,10 @@ const App = () => {
 
   return (
     <>
+      {/* Skip link */}
+      <a href="#main-content" className="skip-link">Skip to main content</a>
+      {/* Screen reader announcer */}
+      <div id="sr-announcer" aria-live="polite" aria-atomic="true" className="sr-only" />
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       <NotificationPanel
         showNotificationPanel={showNotificationPanel}
@@ -1968,6 +1973,7 @@ const App = () => {
           />
         </>
       )}
+      <main id="main-content" role="main">
       {currentView === 'dashboard' && (
         <Suspense fallback={<DashboardLoader />}>
           <StudentDashboard
@@ -2062,6 +2068,7 @@ const App = () => {
           />
         </Suspense>
       )}
+      </main>
 
        {/* Chat Modal */}
        <ChatModal

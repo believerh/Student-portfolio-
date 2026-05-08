@@ -191,12 +191,13 @@ const LoginPage = ({
           <div className="space-y-5">
             {loginMode === 'signup' && signupEnabled && (
               <div className="animate-fade-in">
-                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`} htmlFor="signup-name">
                   Full Name
                 </label>
                 <div className="relative">
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
+                    id="signup-name"
                     type="text"
                     placeholder="John Doe"
                     className={`w-full pl-12 pr-4 py-3.5 rounded-xl border-2 text-base transition-all duration-300 outline-none ${
@@ -206,18 +207,20 @@ const LoginPage = ({
                     }`}
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    aria-required="true"
                   />
                 </div>
               </div>
             )}
 
             <div>
-              <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+              <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`} htmlFor="login-email">
                 Email Address
               </label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
+                  id="login-email"
                   type="email"
                   placeholder="you@example.com"
                   className={`w-full pl-12 pr-4 py-3.5 rounded-xl border-2 text-base transition-all duration-300 outline-none ${
@@ -227,6 +230,7 @@ const LoginPage = ({
                   }`}
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  aria-required="true"
                 />
               </div>
             </div>
@@ -237,10 +241,13 @@ const LoginPage = ({
                 <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                   I am a
                 </label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Select your role">
                   <button
                     type="button"
                     onClick={() => setMagicRole('student')}
+                    role="radio"
+                    aria-checked={magicRole === 'student'}
+                    aria-label="Student"
                     className={`py-3 px-4 rounded-xl border-2 transition-all duration-300 ${
                       magicRole === 'student'
                         ? 'border-indigo-500 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
@@ -255,6 +262,9 @@ const LoginPage = ({
                   <button
                     type="button"
                     onClick={() => setMagicRole('teacher')}
+                    role="radio"
+                    aria-checked={magicRole === 'teacher'}
+                    aria-label="Teacher"
                     className={`py-3 px-4 rounded-xl border-2 transition-all duration-300 ${
                       magicRole === 'teacher'
                         ? 'border-purple-500 bg-purple-500/10 text-purple-600 dark:text-purple-400'
@@ -272,12 +282,13 @@ const LoginPage = ({
 
             {loginMode !== 'magic' && (
               <div className="animate-fade-in">
-                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`} htmlFor="login-password">
                   Password
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
+                    id="login-password"
                     type="password"
                     placeholder="••••••••"
                     className={`w-full pl-12 pr-4 py-3.5 rounded-xl border-2 text-base transition-all duration-300 outline-none ${
@@ -287,6 +298,7 @@ const LoginPage = ({
                     }`}
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    aria-required="true"
                   />
                 </div>
               </div>
