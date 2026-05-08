@@ -57,9 +57,10 @@ export const generateFileTags = async (file, type) => {
 /**
  * Extract text content from various file types for AI processing
  * @param {File} file - The file to extract text from
+ * @param {string} apiKey - OpenAI API key for image/video processing (optional)
  * @returns {Promise<string>} - Extracted text content
  */
-export const extractTextContent = async (file) => {
+export const extractTextContent = async (file, apiKey = null) => {
   try {
     // For plain text files, read directly
     if (file.type.startsWith('text/') || file.type === 'application/json') {
@@ -92,12 +93,54 @@ export const extractTextContent = async (file) => {
       
       return fullText.trim();
     }
+
+    // For images - use OpenAI Vision API if key provided
+    if (file.type.startsWith('image/')) {
+      if (!apiKey) {
+        return `Image: ${file.name}, Type: ${file.type}, Size: ${file.size} bytes`;
+      }
+      
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const dataUrl = e.target.result;
+          resolve(dataUrl.split(',')[1]);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Describe this image in detail for indexing. Focus on objects, text, colors, scenes, people, and any readable content. Be concise.' },
+              { type: 'image_url', image_url: { url: `data:${file.type};base64,${base64}` } }
+            ]
+          }],
+          max_tokens: 200
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.choices?.[0]?.message?.content || '';
+      }
+      return `Image: ${file.name}, Type: ${file.type}`;
+    }
     
-    // For other file types, we'd use AI APIs in production
+    // For other file types, return metadata
     return `File: ${file.name}, Type: ${file.type}, Size: ${file.size} bytes`;
   } catch (error) {
     console.error('Error extracting text content:', error);
-    return '';
+    return `File: ${file.name}, Type: ${file.type}`;
   }
 };
 

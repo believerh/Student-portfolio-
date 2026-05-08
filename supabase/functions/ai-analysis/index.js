@@ -31,17 +31,42 @@ serve(async (req) => {
     return new Response('Invalid JSON', { status: 400 });
   }
 
-  const { fileId, fileType, fileName, textContent } = body;
-
-  // Prepare analysis payload
-  const contentToAnalyze = textContent?.trim() || `File: ${fileName || 'unknown'} (${fileType || 'unknown'})`;
+  const { fileId, fileType, fileName, textContent, imageDataUrl } = body;
 
   let tags = [];
   let summary = '';
+  let contentToAnalyze = textContent?.trim() || `File: ${fileName || 'unknown'} (${fileType || 'unknown'})`;
 
   // If OpenAI key is configured, call the API
   if (openaiKey) {
     try {
+      // For images, use Vision API to generate description
+      if (fileType === 'image' && imageDataUrl) {
+        const visionResp = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openaiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [{
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Describe this image in detail for indexing. Focus on objects, text, colors, scenes, people, and any readable content. Be concise.' },
+                { type: 'image_url', image_url: { url: imageDataUrl } }
+              ]
+            }],
+            max_tokens: 200
+          })
+        });
+
+        if (visionResp.ok) {
+          const visionData = await visionResp.json();
+          contentToAnalyze = visionData.choices?.[0]?.message?.content || contentToAnalyze;
+        }
+      }
+
       const prompt = `Analyze this file content and return JSON with keys: tags (array of 5–10 relevant keywords/phrases), summary (1–2 sentence summary, max 200 characters). File type: ${fileType}. Filename: ${fileName}. Content: ${contentToAnalyze.substring(0, 4000)}`;
 
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -76,7 +101,6 @@ serve(async (req) => {
       } else {
         const err = await response.text();
         console.error('OpenAI API error:', response.status, err);
-        // Fallback: very basic tags from filename
         tags = fileName?.split(/[_\s-]/).filter(w => w.length > 2).slice(0, 3) || [fileType];
         summary = `${fileName} uploaded`;
       }
@@ -86,7 +110,6 @@ serve(async (req) => {
       summary = 'File uploaded';
     }
   } else {
-    // No OpenAI key: simple heuristic tags
     console.warn('No OpenAI API key; using basic filename tags');
     tags = fileName?.split(/[_\s-]/).filter(w => w.length > 2).slice(0, 3) || [fileType];
     summary = `File: ${fileName}`;
