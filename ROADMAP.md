@@ -201,8 +201,8 @@
 | 1.1 Full-Text Search | ✅ | Done | Search across files, users, comments with filters |
 | 1.2 Analytics Dashboard | ✅ | Done | Recharts charts: bar, pie, line + stat cards |
 | 1.3 Enhanced Notifications | ✅ | Done | Multi-type toasts, mark-all-read, clear-all, DB sync |
-| 1.4 Drag | 1.4 Drag & Drop Upload | ⏳ | — | | Drop Upload | ✅ | Done | DropZone: drag| 1.4 Drag & Drop Upload | ⏳ | — | |drop, multi-file, progress bars, validation |
-| 1.5 Accessibility | ⏳ | — | |
+| 1.4 Drag & Drop Upload Zone | ✅ | Done | Drag-and-drop file upload, multi-file queue, per-file progress, validation |
+| 1.5 Accessibility (WCAG 2.1 AA) | ✅ | Done | Aria labels, keyboard navigation (Escape close, Enter submit), focus trap, skip-link, screen reader announcements, color contrast audit |
 | 2.1 AI Content Analysis | ⏳ | — | |
 | 2.2 Video/Audio Chat | ⏳ | — | |
 | 2.3 PWA + Offline | ⏳ | — | |
