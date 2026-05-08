@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { User, Users, LogOut, Trash2, UserPlus, Settings, Bell, Moon, Sun, Video, Image, FileText, Music, Mail, X, Shield, HardDrive, MessageCircle, Upload, MessageSquare, Heart } from 'lucide-react';
+import { User, Users, LogOut, Trash2, UserPlus, Settings, Bell, Moon, Sun, Video, Image, FileText, Music, Mail, X, Shield, HardDrive, MessageCircle } from 'lucide-react';
 import FileViewer from './FileViewer';
 import SearchBar from './common/SearchBar';
 import SearchResult from './common/SearchResult';
+import AnalyticsDashboard from './common/AnalyticsDashboard';
 
 const AdminDashboard = ({
   currentUser,
@@ -67,41 +68,6 @@ const AdminDashboard = ({
    const displayedFiles = getFilesByType();
 
    const totalFiles = Object.values(files).flat().length;
-   
-   // Analytics data (would come from file_analytics table in real implementation)
-   const totalViews = allFiles.reduce((sum, file) => sum + (file.view_count || 0), 0);
-   
-   // Top AI tags (simplified implementation)
-   const allTags = allFiles.flatMap(file => file.tags || []);
-   const tagCounts = {};
-   allTags.forEach(tag => {
-     tagCounts[tag] = (tagCounts[tag] || 0) + 1;
-   });
-   const topTags = Object.entries(tagCounts)
-     .sort(([,a], [,b]) => b - a)
-     .slice(0, 10)
-     .map(([tag]) => tag);
-   
-   // Recent activity (simplified)
-   const recentActivity = [
-     { 
-       icon: <Upload className="w-4 h-4" />, 
-       text: 'File Uploaded', 
-       time: '2 min ago', 
-       count: '5' 
-     },
-     { 
-       icon: <MessageSquare className="w-4 h-4" />, 
-       text: 'New Comment', 
-       time: '10 min ago', 
-       count: '3' 
-     },
-     { 
-       icon: <Heart className="w-4 h-4" />, 
-       text: 'File Liked', 
-       time: '15 min ago', 
-       count: '8' 
-   }];
 
    const handleInvite = async () => {
     if (!inviteForm.email) return;
@@ -397,122 +363,19 @@ const AdminDashboard = ({
                          setShowShareModal={setShowShareModal}
                        />
                      ))
-              )}
-            </div>
-             )}
-             {activeTab === 'analytics' && (
-               <div>
-                 <h2 className="text-xl font-bold text-cyan-400 mb-6 pb-4 border-b border-cyan-500/30">{'//'} ANALYTICS_DASHBOARD_</h2>
-                 
-                 {/* Analytics Stats */}
-                 <div className="grid grid-cols-2 gap-4 mb-6">
-                   <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
-                     <p className="text-sm text-gray-400">TOTAL_FILES</p>
-                     <p className="text-2xl font-bold text-cyan-400">{allFiles.length}</p>
-                   </div>
-                   <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
-                     <p className="text-sm text-gray-400">TOTAL_VIEWS</p>
-                     <p className="text-2xl font-bold text-cyan-400">{totalViews}</p>
-                   </div>
-                 </div>
-                 
-                 {/* File Type Distribution */}
-                 <div className="mb-6">
-                   <p className="text-sm font-medium text-cyan-400 mb-2">FILE_TYPE_DISTRIBUTION</p>
-                   <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
-                     <div className="flex justify-between text-sm">
-                       <span>Documents:</span>
-                       <span className="font-mono">{textFiles.length} ({(textFiles.length / allFiles.length * 100 || 0).toFixed(1)}%)</span>
-                     </div>
-                     <div className="flex justify-between text-sm">
-                       <span>Images:</span>
-                       <span className="font-mono">{imageFiles.length} ({(imageFiles.length / allFiles.length * 100 || 0).toFixed(1)}%)</span>
-                     </div>
-                     <div className="flex justify-between text-sm">
-                       <span>Videos:</span>
-                       <span className="font-mono">{videoFiles.length} ({(videoFiles.length / allFiles.length * 100 || 0).toFixed(1)}%)</span>
-                     </div>
-                     <div className="flex justify-between text-sm">
-                       <span>Audio:</span>
-                       <span className="font-mono">{audioFiles.length} ({(audioFiles.length / allFiles.length * 100 || 0).toFixed(1)}%)</span>
-                     </div>
-                   </div>
-                 </div>
-                 
-                 {/* Top Tags */}
-                 <div className="mb-6">
-                   <p className="text-sm font-medium text-cyan-400 mb-2">TOP_AI_TAGS</p>
-                   <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
-                     {topTags.length > 0 ? (
-                       <div className="flex flex-wrap gap-2">
-                         {topTags.map((tag, index) => (
-                           <span key={index} className={`px-2 py-0.5 text-xs bg-cyan-500/20 text-cyan-400 rounded-full`}>
-                             #{tag}
-                           </span>
-                         ))}
-                       </div>
-                     ) : (
-                       <p className="text-gray-500 text-xs">No AI tags generated yet</p>
-                     )}
-                   </div>
-                 </div>
-                 
-                 {/* Recent Activity */}
-                 <div className="mb-6">
-                   <p className="text-sm font-medium text-cyan-400 mb-2">RECENT_ACTIVITY</p>
-                   <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
-                     {recentActivity.length > 0 ? (
-                       <div className="space-y-2">
-                         {recentActivity.map((activity, index) => (
-                           <div key={index} className="flex justify-between items-center py-2 border-b border-gray-700/50 last:mb-0">
-                             <div className="flex items-center gap-2">
-                               <div className={`w-6 h-6 flex items-center justify-center bg-cyan-500/20 text-cyan-400 rounded-full`}>
-                                 {activity.icon}
-                               </div>
-                               <div>
-                                 <p className="text-xs font-medium text-white">{activity.text}</p>
-                                 <p className="text-xs text-gray-400">{activity.time}</p>
-                               </div>
-                             </div>
-                             <span className="text-xs text-gray-400">{activity.count}</span>
-                           </div>
-                         ))}
-                       </div>
-                     ) : (
-                        <p className="text-gray-500 text-xs">No recent activity</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-                 
-                 {/* Recent Activity */}
-                 <div className="mb-6">
-                   <p className="text-sm font-medium text-cyan-400 mb-2">RECENT_ACTIVITY</p>
-                   <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
-                     {recentActivity.length > 0 ? (
-                       <div className="space-y-2">
-                         {recentActivity.map((activity, index) => (
-                           <div key={index} className="flex justify-between items-center py-2 border-b border-gray-700/50 last:mb-0">
-                             <div className="flex items-center gap-2">
-                               <div className={`w-6 h-6 flex items-center justify-center bg-cyan-500/20 text-cyan-400 rounded-full`}>
-                                 {activity.icon}
-                               </div>
-                               <div>
-                                 <p className="text-xs font-medium text-white">{activity.text}</p>
-                                 <p className="text-xs text-gray-400">{activity.time}</p>
-                               </div>
-                             </div>
-                             <span className="text-xs text-gray-400">{activity.count}</span>
-                           </div>
-                         ))}
-                       </div>
-                     ) : (
-                       <p className="text-gray-500 text-xs">No recent activity</p>
-                     )}
-                   </div>
+                   )}
                  </div>
                </div>
+             )}
+             {activeTab === 'analytics' && (
+               <AnalyticsDashboard
+                 students={students}
+                 teachers={teachers}
+                 files={files}
+                 comments={comments}
+                 likes={likes}
+                 shares={shares}
+               />
              )}
              {activeTab === 'settings' && (
                <div>
