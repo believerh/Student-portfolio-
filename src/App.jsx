@@ -1660,9 +1660,9 @@ const App = () => {
 
         // AI Content Analysis via Edge Function
         try {
-          // Extract text for analysis (for text-based files)
+          // Extract text for analysis (text, JSON, and PDF files)
           let extractedText = '';
-          if (fileType === 'text' || file.type.startsWith('text/')) {
+          if (fileType === 'text' || file.type.startsWith('text/') || file.type === 'application/pdf') {
             extractedText = await extractTextContent(file);
           }
 

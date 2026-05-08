@@ -61,22 +61,39 @@ export const generateFileTags = async (file, type) => {
  */
 export const extractTextContent = async (file) => {
   try {
-    // For text-based files, read directly
-    if (file.type.startsWith('text/') || 
-        ['application/pdf', 'application/json'].includes(file.type)) {
-      
+    // For plain text files, read directly
+    if (file.type.startsWith('text/') || file.type === 'application/json') {
       const text = await new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = (e) => resolve(e.target.result);
         reader.onerror = reject;
         reader.readAsText(file);
       });
-      
       return text;
+    }
+
+    // For PDFs, use pdfjs-dist to extract text
+    if (file.type === 'application/pdf') {
+      const pdfjsLib = await import('pdfjs-dist');
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.8.69/pdf.worker.min.js';
+      
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      
+      let fullText = '';
+      const maxPages = Math.min(pdf.numPages, 5);
+      
+      for (let i = 1; i <= maxPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items.map(item => item.str).join(' ');
+        fullText += pageText + ' ';
+      }
+      
+      return fullText.trim();
     }
     
     // For other file types, we'd use AI APIs in production
-    // For now, return metadata-based description
     return `File: ${file.name}, Type: ${file.type}, Size: ${file.size} bytes`;
   } catch (error) {
     console.error('Error extracting text content:', error);
