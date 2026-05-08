@@ -18,6 +18,9 @@ const FileViewer = memo(function FileViewer(props) {
     setShowShareModal,
     dbConfig,
     showNotification,
+    versions = [],
+    onCreateVersion,
+    onRestoreVersion,
   } = props;
   const [showPreview, setShowPreview] = useState(false);
   const [commentText, setCommentText] = useState('');
@@ -27,6 +30,8 @@ const FileViewer = memo(function FileViewer(props) {
   const [fileTags, setFileTags] = useState([]);
   const [fileSummary, setFileSummary] = useState('');
   const [showSummary, setShowSummary] = useState(false);
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const versionFileInputRef = useRef(null);
   useKeyboardClose(showPreview, () => setShowPreview(false));
   const mediaRef = useRef(null);
 
@@ -39,6 +44,24 @@ const FileViewer = memo(function FileViewer(props) {
   const handleMediaLoad = () => {
     setMediaLoading(false);
     setMediaLoaded(true);
+  };
+
+  const handleVersionClick = () => {
+    versionFileInputRef.current?.click();
+  };
+
+  const handleVersionFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (file && onCreateVersion) {
+      await onCreateVersion(file.id, file);
+      if (versionFileInputRef.current) versionFileInputRef.current.value = '';
+    }
+  };
+
+  const handleRestoreVersionClick = (versionId) => {
+    if (onRestoreVersion) {
+      onRestoreVersion(file.id, versionId);
+    }
   };
 
   const fileComments = comments?.[file.id] || [];
@@ -234,6 +257,19 @@ const FileViewer = memo(function FileViewer(props) {
                   <span className="hidden sm:inline text-sm">Refresh</span>
                 </button>
               )}
+              {/* Version History button */}
+              {onCreateVersion && (
+                <button
+                  onClick={() => setShowVersionHistory(!showVersionHistory)}
+                  aria-expanded={showVersionHistory}
+                  aria-controls={`version-history-${file.id}`}
+                  className={`flex items-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg ${darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'} transition-all`}
+                  aria-label="File version history"
+                >
+                  <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline text-sm">Versions</span>
+                </button>
+              )}
             </>
           )}
           <button
@@ -302,6 +338,67 @@ const FileViewer = memo(function FileViewer(props) {
             >
               <Send className="w-4 h-4" />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Version History */}
+      {showVersionHistory && (
+        <div className={`px-2 sm:px-4 pb-3 sm:pb-4 border-t-2 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'} animate-slide-down`} id={`version-history-${file.id}`} role="region" aria-label="File version history">
+          <div className="py-3 sm:py-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className={`font-semibold text-sm sm:text-base ${darkMode ? 'text-white' : 'text-gray-800'}`}>Version History</h3>
+              {/* Upload new version button */}
+              <input
+                type="file"
+                ref={versionFileInputRef}
+                onChange={handleVersionFileChange}
+                className="hidden"
+                aria-label="Upload new version"
+              />
+              {onCreateVersion && (
+                <button
+                  onClick={handleVersionClick}
+                  className={`flex items-center gap-1 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg ${darkMode ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-indigo-600 text-white hover:bg-indigo-700'} transition-all text-xs sm:text-sm`}
+                  aria-label="Create new version"
+                >
+                  <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span>New Version</span>
+                </button>
+              )}
+            </div>
+
+            {versions.length === 0 ? (
+              <p className={`text-xs sm:text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No previous versions</p>
+            ) : (
+              <div className="space-y-2">
+                {versions.map((v) => (
+                  <div
+                    key={v.id}
+                    className={`flex items-center justify-between p-2 sm:p-3 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white border'}`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-xs sm:text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-800'} truncate`}>
+                        Version {v.version_number}
+                      </p>
+                      <p className={`text-[10px] sm:text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                        {new Date(v.created_at).toLocaleString()} • {v.size} • {v.mime_type}
+                      </p>
+                      {v.notes && (
+                        <p className={`text-[10px] sm:text-xs mt-1 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{v.notes}</p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleRestoreVersionClick(v.id)}
+                      className={`ml-2 px-2 sm:px-3 py-1 rounded text-xs ${darkMode ? 'bg-gray-600 text-gray-200 hover:bg-gray-500' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} transition-all`}
+                      aria-label={`Restore version ${v.version_number}`}
+                    >
+                      Restore
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

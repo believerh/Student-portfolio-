@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import React, { useState, useMemo, memo } from 'react';
+import React, { useState, useMemo, memo, useEffect } from 'react';
 import { Upload, FileText, Image, Video, Music, User, LogOut, Eye, Link2, Bell, Moon, Sun, Share2, Inbox, MessageCircle } from 'lucide-react';
 import FileViewer from './FileViewer';
 import SearchBar from './common/SearchBar';
@@ -31,6 +31,10 @@ const StudentDashboard = (props) => {
     handleSearch,
     searchResults,
     searchState,
+    fileVersions,
+    loadFileVersions,
+    onCreateVersion,
+    onRestoreVersion,
   } = props;
 
   // eslint-disable-next-line no-unused-vars
@@ -80,6 +84,15 @@ const StudentDashboard = (props) => {
     [notifications, currentUser?.dbId]
   );
 
+  // Load file versions when files are loaded
+  useEffect(() => {
+    if (loadFileVersions && studentFiles.length > 0) {
+      studentFiles.forEach(file => {
+        loadFileVersions(file.id);
+      });
+    }
+  }, [studentFiles, loadFileVersions]);
+
   const FileList = ({ fileList, type }) => (
     fileList.length === 0 ? (
       <div className="text-center py-8 sm:py-12 animate-fade-in">
@@ -107,6 +120,9 @@ const StudentDashboard = (props) => {
               handleAddComment={handleAddComment}
               setSelectedFileForShare={setSelectedFileForShare}
               setShowShareModal={setShowShareModal}
+              versions={fileVersions}
+              onCreateVersion={onCreateVersion}
+              onRestoreVersion={onRestoreVersion}
             />
           </div>
         ))}

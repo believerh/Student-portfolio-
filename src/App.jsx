@@ -46,6 +46,7 @@ const App = () => {
   const [students, setStudents] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [files, setFiles] = useState({});
+  const [fileVersions, setFileVersions] = useState({}); // fileId -> version[]
   const [comments, setComments] = useState({});
   const [likes, setLikes] = useState({});
   const [shares, setShares] = useState({});
@@ -1376,7 +1377,123 @@ const App = () => {
     }
   };
 
-  const handleFileUpload = async (studentId, file, type) => {
+  const loadFileVersions = async (fileId) => {
+    if (!isConnected || !supabase) return [];
+    try {
+      const { data, error } = await supabase
+        .from('file_versions')
+        .select('*')
+        .eq('file_id', fileId)
+        .order('version_number', { ascending: false });
+      if (error) throw error;
+      setFileVersions(prev => ({ ...prev, [fileId]: data || [] }));
+      return data || [];
+    } catch (error) {
+      console.error('Failed to load versions:', error);
+      return [];
+    }
+  };
+
+  const handleRestoreVersion = async (fileId, versionId) => {
+    if (!isConnected || !supabase) {
+      showNotification('Not connected to database');
+      return;
+    }
+    try {
+      // Get version
+      const { data: version, error: vErr } = await supabase
+        .from('file_versions')
+        .select('*')
+        .eq('id', versionId)
+        .single();
+      if (vErr) throw vErr;
+      if (!version) {
+        showNotification('Version not found');
+        return;
+      }
+
+      // Update the file record to point to the version's data
+      const { error: updateErr } = await supabase
+        .from('files')
+        .update({
+          data: version.data,
+          storage_path: version.storage_path,
+          size: version.size,
+          mime_type: version.mime_type,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', fileId);
+      if (updateErr) throw updateErr;
+
+      // Update local state
+      setFiles(prev => ({
+        ...prev,
+        [currentUser.dbId]: (prev[currentUser.dbId] || []).map(f =>
+          f.id === fileId
+            ? { ...f, data: version.data, storage_path: version.storage_path, size: version.size, mime_type: version.mime_type }
+            : f
+        )
+      }));
+
+      showNotification('Version restored successfully');
+    } catch (error) {
+      console.error('Restore error:', error);
+      showNotification(`Restore failed: ${error.message}`);
+    }
+  };
+
+  const handleCreateFileVersion = async (fileId, newFile) => {
+    if (!isConnected || !supabase) {
+      showNotification('Not connected to database');
+      return null;
+    }
+
+    try {
+      // Get current file record
+      const currentFile = (files[currentUser.dbId] || []).find(f => f.id === fileId);
+      if (!currentFile) {
+        showNotification('File not found');
+        return null;
+      }
+
+      // Determine next version number
+      const currentVersions = fileVersions[fileId] || [];
+      const nextVersion = Math.max(0, ...currentVersions.map(v => v.version_number)) + 1;
+
+      // Create version record from current file
+      const versionRecord = {
+        file_id: fileId,
+        version_number: nextVersion,
+        storage_path: currentFile.storage_path,
+        data: currentFile.data,
+        size: currentFile.size,
+        mime_type: currentFile.mime_type,
+        created_by: currentUser.id,
+        notes: `Version ${nextVersion}`
+      };
+
+      const { error: verErr } = await supabase.from('file_versions').insert(versionRecord);
+      if (verErr) throw verErr;
+
+      // Refresh versions list
+      await loadFileVersions(fileId);
+
+      // Now proceed with uploading new file (same as handleFileUpload but for specific fileId)
+      // We'll reuse the existing upload flow but with a flag to treat as versioned update
+      // For now, call handleFileUpload which will replace the file; version already saved
+      await handleFileUpload(currentUser.dbId, newFile, currentFile.type, fileId); // pass fileId to update existing
+
+      showNotification(`New version ${nextVersion} uploaded`);
+      return nextVersion;
+    } catch (error) {
+      console.error('Version creation error:', error);
+      showNotification(`Failed to create new version: ${error.message}`);
+      return null;
+    }
+  };
+
+  // Overload handleFileUpload to optionally update existing file
+  const handleFileUpload = async (studentId, file, type, existingFileId = null) => {
     // Check file size (limit to 15GB for Supabase storage)
     const maxSize = 15 * 1024 * 1024 * 1024; // 15GB
     if (file.size > maxSize) {
@@ -1462,56 +1579,69 @@ const App = () => {
         data: fileUrl,
         storage_path: storagePath,
         mime_type: file.type,
-        created_at: new Date().toISOString()
+        created_at: existingFileId ? undefined : new Date().toISOString(), // only set on create
+        updated_at: existingFileId ? new Date().toISOString() : undefined
       };
 
-       const saved = await saveToDatabase('files', newFile);
-       if (saved && saved.length > 0) {
-         const savedFile = { ...newFile, id: saved[0].id };
-         setFiles(prev => ({
-           ...prev,
-           [actualStudentId]: [...(prev[actualStudentId] || []), savedFile]
-         }));
-         
-         // Process file with AI for tags and summary
-         try {
-           // Generate tags for the file
-           const tags = await generateFileTags(file, fileType);
-           
-           // Save tags to database
-           const tagPromises = tags.map(tag => 
-             saveToDatabase('file_tags', {
-               file_id: saved[0].id,
-               tag: tag,
-               confidence: 0.8 // Default confidence for AI-generated tags
-             })
-           );
-           await Promise.all(tagPromises);
-           
-           // Extract text content and generate summary for text-based files
-           if (fileType === 'text' || file.type.startsWith('text/')) {
-             const content = await extractTextContent(file);
-             if (content && content.trim() !== '') {
-               const summary = await generateSummary(content);
-               
-               // Save summary to database
-               await saveToDatabase('file_summaries', {
-                 file_id: saved[0].id,
-                 summary: summary,
-                 language: 'en' // Default to English, could detect language
-               });
-             }
-           }
-         } catch (aiError) {
-           console.warn('AI processing failed:', aiError);
-           // Don't fail the upload if AI processing fails
-         }
-         
-         addNotification('admin_001', `New file uploaded by ${currentUser.name}: ${file.name}`, 'upload');
-         showNotification('File uploaded successfully! ✅');
-       } else {
-         showNotification('Error saving file record. Check Supabase permissions.');
-       }
+      const method = existingFileId ? 'PATCH' : 'POST';
+      const saved = await saveToDatabase('files', newFile, method);
+
+      // Build the file object to put in state
+      let savedFile;
+      if (existingFileId) {
+        // Update local file with new fields
+        savedFile = { ...(files[actualStudentId]?.find(f => f.id === existingFileId) || {}), ...newFile, id: existingFileId };
+      } else if (saved && saved.length > 0) {
+        savedFile = { ...newFile, id: saved[0].id };
+      } else {
+        showNotification('Error saving file record. Check Supabase permissions.');
+        return;
+      }
+
+      if (existingFileId) {
+        // Replace the file in the array
+        setFiles(prev => ({
+          ...prev,
+          [actualStudentId]: (prev[actualStudentId] || []).map(f => f.id === existingFileId ? savedFile : f)
+        }));
+        showNotification('File updated with new version');
+      } else {
+        // Append new file
+        setFiles(prev => ({
+          ...prev,
+          [actualStudentId]: [...(prev[actualStudentId] || []), savedFile]
+        }));
+
+        // Process file with AI for tags and summary
+        try {
+          const tags = await generateFileTags(file, fileType);
+          const tagPromises = tags.map(tag =>
+            saveToDatabase('file_tags', {
+              file_id: savedFile.id,
+              tag: tag,
+              confidence: 0.8
+            })
+          );
+          await Promise.all(tagPromises);
+
+          if (fileType === 'text' || file.type.startsWith('text/')) {
+            const content = await extractTextContent(file);
+            if (content && content.trim() !== '') {
+              const summary = await generateSummary(content);
+              await saveToDatabase('file_summaries', {
+                file_id: savedFile.id,
+                summary: summary,
+                language: 'en'
+              });
+            }
+          }
+        } catch (aiError) {
+          console.warn('AI processing failed:', aiError);
+        }
+
+        addNotification('admin_001', `New file uploaded by ${currentUser.name}: ${file.name}`, 'upload');
+        showNotification('File uploaded successfully! ✅');
+      }
     } catch (err) {
       console.error('Upload error:', err);
       showNotification(`Upload failed: ${err.message}`);
@@ -2000,6 +2130,10 @@ const App = () => {
             handleSearch={handleSearch}
             searchResults={searchResults}
             searchState={searchState}
+            fileVersions={fileVersions}
+            loadFileVersions={loadFileVersions}
+            onCreateVersion={handleCreateFileVersion}
+            onRestoreVersion={handleRestoreVersion}
           />
         </Suspense>
       )}
