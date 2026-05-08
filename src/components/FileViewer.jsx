@@ -1,6 +1,12 @@
 import React, { useState, memo, useEffect, useRef } from 'react';
-import { FileText, Image, Video, Music, Eye, Trash2, Share2, MessageSquare, Heart, Send, X, Loader2, CircleHelp, Download, RefreshCw } from 'lucide-react';
+import { FileText, Image, Video, Music, Eye, Trash2, Share2, MessageSquare, Heart, Send, X, Loader2, CircleHelp, Download, RefreshCw, ZoomIn, ZoomOut, RotateCcw, Maximize2 } from 'lucide-react';
+import { Document, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
+import 'react-pdf/dist/esm/Page/TextLayer.css';
 import { useKeyboardClose } from '../hooks/a11y';
+
+// Configure PDF.js worker
+pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 const FileViewer = memo(function FileViewer(props) {
   const {
@@ -32,6 +38,18 @@ const FileViewer = memo(function FileViewer(props) {
   const [showSummary, setShowSummary] = useState(false);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const versionFileInputRef = useRef(null);
+  // Image zoom/pan state
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStart = useRef({ x: 0, y: 0 });
+  const panX = pan.x;
+  const panY = pan.y;
+  // PDF viewer state
+  const [numPages, setNumPages] = useState(null);
+  const [pageNumber, setPageNumber] = useState(1);
+  const [pdfScale, setPdfScale] = useState(1);
+  const [pdfLoading, setPdfLoading] = useState(true);
   useKeyboardClose(showPreview, () => setShowPreview(false));
   const mediaRef = useRef(null);
 
@@ -44,6 +62,40 @@ const FileViewer = memo(function FileViewer(props) {
   const handleMediaLoad = () => {
     setMediaLoading(false);
     setMediaLoaded(true);
+  };
+
+  // Image zoom/pan handlers
+  const handleMouseDown = (e) => {
+    if (zoom <= 1) return;
+    setIsDragging(true);
+    dragStart.current = { x: e.clientX - panX, y: e.clientY - panY };
+    e.preventDefault();
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging || zoom <= 1) return;
+    setPan({
+      x: e.clientX - dragStart.current.x,
+      y: e.clientY - dragStart.current.y,
+    });
+  };
+
+  const handleMouseUp = () => setIsDragging(false);
+
+  const handleTouchStart = (e) => {
+    if (zoom <= 1 || e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    setIsDragging(true);
+    dragStart.current = { x: touch.clientX - panX, y: touch.clientY - panY };
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isDragging || zoom <= 1 || e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    setPan({
+      x: touch.clientX - dragStart.current.x,
+      y: touch.clientY - dragStart.current.y,
+    });
   };
 
   const handleVersionClick = () => {
@@ -421,47 +473,103 @@ const FileViewer = memo(function FileViewer(props) {
           </div>
 
           {file.type === 'video' && (
-            <div className="relative">
+            <div className="relative" ref={mediaRef}>
               {mediaLoading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-gray-900 rounded-lg h-48 sm:h-96">
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-900 rounded-lg h-48 sm:h-96 z-10">
                   <Loader2 className="w-8 h-8 animate-spin text-white" />
                 </div>
               )}
               <video
-                ref={mediaRef}
                 controls
                 className="w-full max-h-48 sm:max-h-96 rounded-lg bg-black"
                 preload="metadata"
                 onLoadedData={handleMediaLoad}
+                onPlay={() => setMediaLoading(false)}
+                onPause={() => {}}
+                onEnded={() => {}}
               >
                 <source src={file.data} type={file.mime_type || file.mimeType} />
                 Your browser does not support video playback.
               </video>
+              {/* Fullscreen button overlay */}
+              <button
+                onClick={() => {
+                  const vid = mediaRef.current?.querySelector('video');
+                  if (vid) {
+                    if (vid.requestFullscreen) vid.requestFullscreen();
+                    else if (vid.webkitRequestFullscreen) vid.webkitRequestFullscreen();
+                    else if (vid.msRequestFullscreen) vid.msRequestFullscreen();
+                  }
+                }}
+                className="absolute bottom-2 right-2 p-2 bg-black/60 hover:bg-black/80 rounded text-white"
+                aria-label="Fullscreen"
+                title="Fullscreen"
+              >
+                <Maximize2 className="w-4 h-4" />
+              </button>
             </div>
           )}
 
           {file.type === 'image' && (
-            <div className="relative">
+            <div className="relative overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-900" style={{ cursor: zoom > 1 ? 'grab' : 'default' }}>
               {mediaLoading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg h-48 sm:h-96">
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg h-48 sm:h-96 z-10">
                   <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
                 </div>
               )}
-              <img
-                src={file.data}
-                alt={file.name}
-                className="w-full max-h-48 sm:max-h-96 object-contain rounded-lg mx-auto"
-                loading="lazy"
-                onLoad={handleMediaLoad}
-              />
+              <div
+                style={{
+                  transform: `translate(${panX}px, ${panY}px) scale(${zoom})`,
+                  transformOrigin: 'center center',
+                  transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+                }}
+                className="select-none"
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleMouseUp}
+                onDoubleClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }}
+              >
+                <img
+                  src={file.data}
+                  alt={file.name}
+                  className="max-w-none"
+                  style={{ maxHeight: 'none', height: 'auto', width: 'auto' }}
+                  onLoad={handleMediaLoad}
+                  draggable="false"
+                />
+              </div>
+              {/* Zoom controls */}
+              <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/60 backdrop-blur rounded-lg p-1">
+                <button
+                  onClick={() => setZoom(Math.max(0.5, zoom - 0.5))}
+                  aria-label="Zoom out"
+                  className="text-white p-1 hover:bg-white/20 rounded"
+                ><ZoomOut className="w-4 h-4" /></button>
+                <span className="text-white text-xs px-2">{Math.round(zoom * 100)}%</span>
+                <button
+                  onClick={() => setZoom(Math.min(3, zoom + 0.5))}
+                  aria-label="Zoom in"
+                  className="text-white p-1 hover:bg-white/20 rounded"
+                ><ZoomIn className="w-4 h-4" /></button>
+                <button
+                  onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }}
+                  aria-label="Reset zoom"
+                  className="text-white p-1 hover:bg-white/20 rounded"
+                ><RotateCcw className="w-4 h-4" /></button>
+              </div>
             </div>
           )}
 
           {file.type === 'audio' && (
-            <div className="flex items-center justify-center p-4 sm:p-8">
+            <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} p-4 sm:p-6 rounded-lg`}>
               <audio
+                ref={mediaRef}
                 controls
-                className="w-full max-w-sm sm:max-w-md"
+                className="w-full"
                 preload="metadata"
                 onLoadedData={handleMediaLoad}
               >
@@ -473,12 +581,66 @@ const FileViewer = memo(function FileViewer(props) {
 
           {file.type === 'text' && (
             <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} p-3 sm:p-6 rounded-lg max-h-48 sm:max-h-96 overflow-auto`}>
-              <iframe
-                src={file.data}
-                className="w-full h-48 sm:h-96 border-0 rounded-lg"
-                title={file.name}
-                loading="lazy"
-              ></iframe>
+              {file.mime_type?.includes('pdf') || file.name.toLowerCase().endsWith('.pdf') ? (
+                <div className="flex flex-col items-center">
+                  {pdfLoading && (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                    </div>
+                  )}
+                  <Document
+                    file={file.data}
+                    onLoadSuccess={({ numPages }) => {
+                      setNumPages(numPages);
+                      setPageNumber(1);
+                      setPdfLoading(false);
+                    }}
+                    onLoadError={(err) => {
+                      console.error('PDF load error:', err);
+                      setPdfLoading(false);
+                    }}
+                    className="w-full"
+                  >
+                    <Page
+                      pageNumber={pageNumber}
+                      scale={pdfScale}
+                      renderTextLayer={true}
+                      renderAnnotationLayer={true}
+                      className="mx-auto border"
+                      width={Math.min(800, window.innerWidth - 100)}
+                    />
+                  </Document>
+                  {numPages && numPages > 1 && (
+                    <div className="flex items-center gap-2 mt-4">
+                      <button
+                        onClick={() => setPageNumber(p => Math.max(1, p - 1))}
+                        disabled={pageNumber <= 1}
+                        className={`px-3 py-1 rounded text-sm ${darkMode ? 'bg-gray-700 text-white' : 'bg-gray-200'} disabled:opacity-50`}
+                        aria-label="Previous page"
+                      >Prev</button>
+                      <span className={`text-sm ${darkMode ? 'text-white' : 'text-gray-800'}`}>Page {pageNumber} of {numPages}</span>
+                      <button
+                        onClick={() => setPageNumber(p => Math.min(numPages, p + 1))}
+                        disabled={pageNumber >= numPages}
+                        className={`px-3 py-1 rounded text-sm ${darkMode ? 'bg-gray-700 text-white' : 'bg-gray-200'} disabled:opacity-50`}
+                        aria-label="Next page"
+                      >Next</button>
+                      <div className="flex items-center gap-1 ml-2">
+                        <button onClick={() => setPdfScale(s => Math.max(0.5, s - 0.25))} aria-label="Zoom out" className="p-1 rounded bg-gray-200 dark:bg-gray-700"><ZoomOut className="w-4 h-4" /></button>
+                        <span className="text-sm w-12 text-center">{Math.round(pdfScale * 100)}%</span>
+                        <button onClick={() => setPdfScale(s => Math.min(3, s + 0.25))} aria-label="Zoom in" className="p-1 rounded bg-gray-200 dark:bg-gray-700"><ZoomIn className="w-4 h-4" /></button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <iframe
+                  src={file.data}
+                  className="w-full h-48 sm:h-96 border-0 rounded-lg"
+                  title={file.name}
+                  loading="lazy"
+                ></iframe>
+              )}
             </div>
           )}
         </div>
