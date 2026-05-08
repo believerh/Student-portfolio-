@@ -95,17 +95,49 @@ serve(async (req) => {
   // Persist results to database
   if (fileId) {
     try {
-      // Update file record if it has summary column; otherwise use file_summaries table
-      // The schema uses separate tables: file_tags and file_summaries
+      // Tags
       const tagInserts = tags.map(tag =>
         supabase.from('file_tags').insert({ file_id: fileId, tag, confidence: openaiKey ? 0.9 : 0.5 })
       );
       await Promise.all(tagInserts);
 
+      // Summary
       if (summary && (fileType === 'text' || fileType === 'pdf' || fileType === 'doc' || fileType === 'docx')) {
         await supabase
           .from('file_summaries')
           .insert({ file_id: fileId, summary, language: 'en' });
+      }
+
+      // Embedding (for semantic search)
+      if (openaiKey && contentToAnalyze) {
+        try {
+          const embedResp = await fetch('https://api.openai.com/v1/embeddings', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${openaiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'text-embedding-3-small',
+              input: contentToAnalyze.substring(0, 8000)
+            })
+          });
+          if (embedResp.ok) {
+            const embData = await embedResp.json();
+            const embedding = embData.data?.[0]?.embedding;
+            if (embedding && Array.isArray(embedding)) {
+              await supabase.from('file_embeddings').upsert({
+                file_id: fileId,
+                embedding,
+                model: 'text-embedding-3-small'
+              });
+            }
+          } else {
+            console.error('Embedding API error:', embedResp.status);
+          }
+        } catch (embErr) {
+          console.error('Embedding generation failed:', embErr);
+        }
       }
     } catch (dbErr) {
       console.error('Failed to persist AI results:', dbErr);

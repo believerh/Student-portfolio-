@@ -35,6 +35,7 @@ const StudentDashboard = (props) => {
     loadFileVersions,
     onCreateVersion,
     onRestoreVersion,
+    getSimilarFiles,
   } = props;
 
   // eslint-disable-next-line no-unused-vars
@@ -123,6 +124,7 @@ const StudentDashboard = (props) => {
               versions={fileVersions}
               onCreateVersion={onCreateVersion}
               onRestoreVersion={onRestoreVersion}
+              onGetSimilar={getSimilarFiles}
             />
           </div>
         ))}
@@ -351,6 +353,7 @@ const StudentDashboard = (props) => {
                       handleAddComment={handleAddComment}
                       setSelectedFileForShare={setSelectedFileForShare}
                       setShowShareModal={setShowShareModal}
+                      onGetSimilar={getSimilarFiles}
                     />
                   </div>
                 ))}
@@ -390,6 +393,7 @@ const StudentDashboard = (props) => {
                       handleAddComment={handleAddComment}
                       setSelectedFileForShare={setSelectedFileForShare}
                       setShowShareModal={setShowShareModal}
+                      onGetSimilar={getSimilarFiles}
                     />
                   </div>
                 ))}

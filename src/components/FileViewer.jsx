@@ -27,6 +27,7 @@ const FileViewer = memo(function FileViewer(props) {
     versions = [],
     onCreateVersion,
     onRestoreVersion,
+    onGetSimilar,
   } = props;
   const [showPreview, setShowPreview] = useState(false);
   const [commentText, setCommentText] = useState('');
@@ -50,6 +51,9 @@ const FileViewer = memo(function FileViewer(props) {
   const [pageNumber, setPageNumber] = useState(1);
   const [pdfScale, setPdfScale] = useState(1);
   const [pdfLoading, setPdfLoading] = useState(true);
+  const [similarFiles, setSimilarFiles] = useState([]);
+  const [showSimilar, setShowSimilar] = useState(false);
+  const [loadingSimilar, setLoadingSimilar] = useState(false);
   useKeyboardClose(showPreview, () => setShowPreview(false));
   const mediaRef = useRef(null);
 
@@ -322,6 +326,27 @@ const FileViewer = memo(function FileViewer(props) {
                   <span className="hidden sm:inline text-sm">Versions</span>
                 </button>
               )}
+              {/* Similar Files button */}
+              {onGetSimilar && (
+                <button
+                  onClick={async () => {
+                    setShowSimilar(!showSimilar);
+                    if (!showSimilar) {
+                      setLoadingSimilar(true);
+                      const results = await onGetSimilar(file.id, 5);
+                      setSimilarFiles(results);
+                      setLoadingSimilar(false);
+                    }
+                  }}
+                  aria-expanded={showSimilar}
+                  aria-controls={`similar-files-${file.id}`}
+                  className={`flex items-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg ${darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'} transition-all`}
+                  aria-label="Similar files"
+                >
+                  <CircleHelp className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline text-sm">Similar</span>
+                </button>
+              )}
             </>
           )}
           <button
@@ -446,6 +471,75 @@ const FileViewer = memo(function FileViewer(props) {
                       aria-label={`Restore version ${v.version_number}`}
                     >
                       Restore
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Media preview */}
+
+      {/* Similar Files */}
+      {showSimilar && (
+        <div
+          className={`px-2 sm:px-4 pb-3 sm:pb-4 border-t-2 ${
+            darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'
+          } animate-slide-down`}
+          id={`similar-files-${file.id}`}
+          role='region'
+          aria-label='Similar files'
+        >
+          <div className='py-3 sm:py-4'>
+            <h3 className={`font-semibold text-sm sm:text-base ${darkMode ? 'text-white' : 'text-gray-800'} mb-3`}>
+              Similar Files
+            </h3>
+            {loadingSimilar ? (
+              <div className='flex items-center justify-center p-4'>
+                <Loader2 className='w-5 h-5 animate-spin' aria-hidden={true} />
+                <span className='ml-2 text-sm'>Finding similar files...</span>
+              </div>
+            ) : similarFiles.length === 0 ? (
+              <p className={`text-xs sm:text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                No similar files found
+              </p>
+            ) : (
+              <div className='space-y-2'>
+                {similarFiles.map((similar) => (
+                  <div
+                    key={similar.file_id}
+                    className={`flex items-center justify-between p-2 sm:p-3 rounded-lg ${
+                      darkMode ? 'bg-gray-700' : 'bg-white border'
+                    }`}
+                  >
+                    <div className='flex-1 min-w-0'>
+                      <p className={`text-xs sm:text-sm font-medium truncate ${
+                        darkMode ? 'text-white' : 'text-gray-800'
+                      }`}
+                        title={similar.file_name}
+                      >
+                        {similar.file_name}
+                      </p>
+                      <p className={`text-[10px] sm:text-xs ${
+                        darkMode ? 'text-gray-400' : 'text-gray-500'
+                      }`}>
+                        {similar.file_type || 'file'} • {similar.similarity ? `${(similar.similarity * 100).toFixed(0)}% match` : ''}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        console.log('Open similar file:', similar.file_id);
+                      }}
+                      className={`ml-2 px-2 sm:px-3 py-1 rounded text-xs ${
+                        darkMode
+                          ? 'bg-gray-600 text-gray-200 hover:bg-gray-500'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      } transition-all`}
+                      aria-label={`Open ${similar.file_name}`}
+                    >
+                      Open
                     </button>
                   </div>
                 ))}

@@ -373,6 +373,25 @@ const App = () => {
     }
   };
 
+  // Get similar files for AI recommendations
+  const getSimilarFiles = useCallback(async (fileId, limit = 5) => {
+    if (!supabase) {
+      console.warn('Supabase client not initialized');
+      return [];
+    }
+    try {
+      const { data, error } = await supabase.rpc('get_similar_files', {
+        p_file_id: fileId,
+        p_limit: limit
+      });
+      if (error) throw error;
+      return data || [];
+    } catch (err) {
+      console.error('Error fetching similar files:', err);
+      return [];
+    }
+  }, [supabase]);
+
   // Use ref to track currentUser for real-time subscriptions to avoid stale closures
   const currentUserRef = React.useRef(currentUser);
   useEffect(() => {
@@ -2204,6 +2223,7 @@ const App = () => {
             loadFileVersions={loadFileVersions}
             onCreateVersion={handleCreateFileVersion}
             onRestoreVersion={handleRestoreVersion}
+            getSimilarFiles={getSimilarFiles}
           />
         </Suspense>
       )}
