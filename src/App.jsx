@@ -2,8 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import DatabaseSetup from './components/DatabaseSetup';
 import LoginPage from './components/LoginPage';
-import Notification from './components/common/Notification';
 import NotificationPanel from './components/common/NotificationPanel';
+import ToastContainer from './components/common/ToastContainer';
 import ShareModal from './components/common/ShareModal';
 import SendFileModal from './components/common/SendFileModal';
 import AddStudentModal from './components/common/AddStudentModal';
@@ -50,7 +50,7 @@ const App = () => {
   const [shares, setShares] = useState({});
   const [notifications, setNotifications] = useState([]);
   const [chatMessages, setChatMessages] = useState([]);
-  const [notification, setNotification] = useState(null);
+  const [toasts, setToasts] = useState([]);
   const [signupEnabled, setSignupEnabled] = useState(true);
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
   const [showAddTeacherModal, setShowAddTeacherModal] = useState(false);
@@ -785,9 +785,56 @@ const App = () => {
     showNotification(`Student signup ${newValue ? 'enabled' : 'disabled'}`);
   };
 
-  const showNotification = (message) => {
-    setNotification(message);
-    setTimeout(() => setNotification(null), 3000);
+  const showNotification = (message, type = 'info', duration = 4000) => {
+    const id = Date.now().toString() + Math.random().toString(36).slice(2);
+    setToasts(prev => [...prev, { id, message, type, duration }]);
+  };
+
+  const dismissToast = (id) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
+
+  const markAllNotificationsRead = async () => {
+    const userId = currentUser?.role === 'admin' ? currentUser?.id : currentUser?.dbId;
+    setNotifications(prev =>
+      prev.map(n => (n.userId === userId ? { ...n, read: true } : n))
+    );
+    // Persist to DB
+    if (dbConfig.url && dbConfig.key) {
+      try {
+        await fetch(`${dbConfig.url}/rest/v1/notifications?user_id=eq.${userId}&read=is.false`, {
+          method: 'PATCH',
+          headers: {
+            'apikey': dbConfig.key,
+            'Authorization': `Bearer ${dbConfig.key}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal',
+          },
+          body: JSON.stringify({ read: true }),
+        });
+      } catch (e) {
+        console.error('Failed to mark all notifications read:', e);
+      }
+    }
+  };
+
+  const clearAllNotifications = async () => {
+    const userId = currentUser?.role === 'admin' ? currentUser?.id : currentUser?.dbId;
+    setNotifications(prev => prev.filter(n => n.userId !== userId));
+    // Persist to DB
+    if (dbConfig.url && dbConfig.key) {
+      try {
+        await fetch(`${dbConfig.url}/rest/v1/notifications?user_id=eq.${userId}`, {
+          method: 'DELETE',
+          headers: {
+            'apikey': dbConfig.key,
+            'Authorization': `Bearer ${dbConfig.key}`,
+          },
+        });
+      } catch (e) {
+        console.error('Failed to clear notifications:', e);
+      }
+    }
   };
 
   const handleSignup = async (name, email, password, role = 'student', isAdminCreated = false) => {
@@ -1824,13 +1871,15 @@ const App = () => {
 
   return (
     <>
-      <Notification notification={notification} darkMode={darkMode} />
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       <NotificationPanel
         showNotificationPanel={showNotificationPanel}
         setShowNotificationPanel={setShowNotificationPanel}
         notifications={notifications}
         currentUser={currentUser}
         markNotificationRead={markNotificationRead}
+        markAllNotificationsRead={markAllNotificationsRead}
+        clearAllNotifications={clearAllNotifications}
         darkMode={darkMode}
         setShowChat={setShowChat}
       />
