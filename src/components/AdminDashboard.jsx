@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { User, Users, LogOut, Trash2, UserPlus, Settings, Bell, Moon, Sun, Video, Image, FileText, Music, Mail, X, Shield, HardDrive, MessageCircle } from 'lucide-react';
+import { User, Users, LogOut, Trash2, UserPlus, Settings, Bell, Moon, Sun, Video, Image, FileText, Music, Mail, X, Shield, HardDrive, MessageCircle, Link } from 'lucide-react';
 import FileViewer from './FileViewer';
 import SearchBar from './common/SearchBar';
 import SearchResult from './common/SearchResult';
 import AnalyticsDashboard from './common/AnalyticsDashboard';
+import LMSSettingsModal from './common/LMSSettingsModal';
 
 const AdminDashboard = ({
   currentUser,
@@ -41,7 +42,9 @@ const AdminDashboard = ({
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteForm, setInviteForm] = useState({ email: '', role: 'student' });
   const [inviting, setInviting] = useState(false);
-   const [activeTab, setActiveTab] = useState('users');
+  const [activeTab, setActiveTab] = useState('users');
+  const [showLMSModal, setShowLMSModal] = useState(false);
+  const [lmsConnections, setLmsConnections] = useState([]);
 
    const unreadNotifications = notifications.filter(n => n.userId === currentUser?.id && !n.read).length;
    const chatNotifications = notifications.filter(n => n.userId === currentUser?.id && n.type === 'chat' && !n.read).length;
@@ -227,6 +230,13 @@ const AdminDashboard = ({
               >
                 <Mail className="w-5 h-5" />
                 <span>&gt; INVITE_USER</span>
+              </button>
+              <button
+                onClick={() => setShowLMSModal(true)}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 hover:border-indigo-400 transition-all"
+              >
+                <Link className="w-5 h-5" />
+                <span>&gt; LMS_INTEGRATIONS</span>
               </button>
             </div>
 
@@ -454,6 +464,17 @@ const AdminDashboard = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* LMS Settings Modal */}
+      {showLMSModal && (
+        <LMSSettingsModal
+          onClose={() => setShowLMSModal(false)}
+          onSave={(connection) => {
+            setLmsConnections([...lmsConnections, connection]);
+          }}
+          connections={lmsConnections}
+        />
       )}
     </div>
   );
