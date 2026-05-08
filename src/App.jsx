@@ -9,6 +9,7 @@ import SendFileModal from './components/common/SendFileModal';
 import AddStudentModal from './components/common/AddStudentModal';
 import AddTeacherModal from './components/common/AddTeacherModal';
 import ChatModal from './components/common/ChatModal';
+import OfflineIndicator from './components/common/OfflineIndicator';
 import { performSearch } from './utils/searchUtils';
 import { API_CONFIG } from './utils/apiConfig';
 import { initStorageClient, uploadFileToStorage, deleteFileFromStorage, getBucketForType } from './utils/storageUtils';
@@ -74,7 +75,11 @@ const App = () => {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingMessage, setLoadingMessage] = useState('');
-  
+
+  // PWA install prompt
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
+
   // Pagination states for better performance
   const FILES_PAGE_SIZE = 20;
 
@@ -345,6 +350,28 @@ const App = () => {
       setCurrentView('setup');
     });
   }, [loadFromDatabase, restoreSessionUser]);
+
+  // PWA install prompt capture
+  useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallBanner(true);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  // PWA install handler
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setShowInstallBanner(false);
+      setDeferredPrompt(null);
+    }
+  };
 
   // Use ref to track currentUser for real-time subscriptions to avoid stale closures
   const currentUserRef = React.useRef(currentUser);
@@ -2203,6 +2230,38 @@ const App = () => {
         </Suspense>
       )}
       </main>
+
+      {/* Offline indicator */}
+      <OfflineIndicator />
+
+      {/* PWA Install Banner */}
+      {showInstallBanner && (
+        <div
+          role="dialog"
+          aria-label="Install app"
+          className="fixed bottom-4 right-4 z-50 bg-indigo-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3"
+        >
+          <div>
+            <p className="font-semibold">Install Student Portfolio</p>
+            <p className="text-sm opacity-90">Add to home screen for quick access</p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleInstallClick}
+              className="px-3 py-1 bg-white text-indigo-600 rounded hover:bg-gray-100"
+            >
+              Install
+            </button>
+            <button
+              onClick={() => setShowInstallBanner(false)}
+              className="px-3 py-1 bg-indigo-700 rounded hover:bg-indigo-800"
+              aria-label="Dismiss install prompt"
+            >
+              Not now
+            </button>
+          </div>
+        </div>
+      )}
 
        {/* Chat Modal */}
        <ChatModal
