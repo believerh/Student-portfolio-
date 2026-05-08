@@ -11,6 +11,7 @@ import AddTeacherModal from './components/common/AddTeacherModal';
 import ChatModal from './components/common/ChatModal';
 import { API_CONFIG } from './utils/apiConfig';
 import { initStorageClient, uploadFileToStorage, deleteFileFromStorage, getBucketForType } from './utils/storageUtils';
+import { generateFileTags, extractTextContent, generateSummary } from './utils/aiUtils';
 
 // Lazy load dashboard components for code splitting
 const StudentDashboard = lazy(() => import('./components/StudentDashboard'));
@@ -1405,18 +1406,53 @@ const App = () => {
         created_at: new Date().toISOString()
       };
 
-      const saved = await saveToDatabase('files', newFile);
-      if (saved && saved.length > 0) {
-        const savedFile = { ...newFile, id: saved[0].id };
-        setFiles(prev => ({
-          ...prev,
-          [actualStudentId]: [...(prev[actualStudentId] || []), savedFile]
-        }));
-        addNotification('admin_001', `New file uploaded by ${currentUser.name}: ${file.name}`, 'upload');
-        showNotification('File uploaded successfully! ✅');
-      } else {
-        showNotification('Error saving file record. Check Supabase permissions.');
-      }
+       const saved = await saveToDatabase('files', newFile);
+       if (saved && saved.length > 0) {
+         const savedFile = { ...newFile, id: saved[0].id };
+         setFiles(prev => ({
+           ...prev,
+           [actualStudentId]: [...(prev[actualStudentId] || []), savedFile]
+         }));
+         
+         // Process file with AI for tags and summary
+         try {
+           // Generate tags for the file
+           const tags = await generateFileTags(file, fileType);
+           
+           // Save tags to database
+           const tagPromises = tags.map(tag => 
+             saveToDatabase('file_tags', {
+               file_id: saved[0].id,
+               tag: tag,
+               confidence: 0.8 // Default confidence for AI-generated tags
+             })
+           );
+           await Promise.all(tagPromises);
+           
+           // Extract text content and generate summary for text-based files
+           if (fileType === 'text' || file.type.startsWith('text/')) {
+             const content = await extractTextContent(file);
+             if (content && content.trim() !== '') {
+               const summary = await generateSummary(content);
+               
+               // Save summary to database
+               await saveToDatabase('file_summaries', {
+                 file_id: saved[0].id,
+                 summary: summary,
+                 language: 'en' // Default to English, could detect language
+               });
+             }
+           }
+         } catch (aiError) {
+           console.warn('AI processing failed:', aiError);
+           // Don't fail the upload if AI processing fails
+         }
+         
+         addNotification('admin_001', `New file uploaded by ${currentUser.name}: ${file.name}`, 'upload');
+         showNotification('File uploaded successfully! ✅');
+       } else {
+         showNotification('Error saving file record. Check Supabase permissions.');
+       }
     } catch (err) {
       console.error('Upload error:', err);
       showNotification(`Upload failed: ${err.message}`);
@@ -1958,22 +1994,23 @@ const App = () => {
         </Suspense>
       )}
 
-      {/* Chat Modal */}
-      <ChatModal
-        showChat={showChat}
-        setShowChat={setShowChat}
-        currentUser={currentUser}
-        students={students}
-        teachers={teachers}
-        admin={ADMIN_ACCOUNT}
-        chatMessages={chatMessages}
-        darkMode={darkMode}
-        handleSendMessage={handleSendMessage}
-        handleSendAudio={handleSendAudio}
-        handleDeleteMessage={handleDeleteMessage}
-        isConnected={isConnected}
-        supabase={supabase}
-      />
+       {/* Chat Modal */}
+       <ChatModal
+         showChat={showChat}
+         setShowChat={setShowChat}
+         currentUser={currentUser}
+         students={students}
+         teachers={teachers}
+         admin={ADMIN_ACCOUNT}
+         chatMessages={chatMessages}
+         darkMode={darkMode}
+         handleSendMessage={handleSendMessage}
+         handleSendAudio={handleSendAudio}
+         handleDeleteMessage={handleDeleteMessage}
+         isConnected={isConnected}
+         supabase={supabase}
+         showNotification={showNotification}
+       />
       
       {/* Fallback loading state */}
       {!currentView && (

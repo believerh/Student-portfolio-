@@ -206,6 +206,121 @@ CREATE TABLE IF NOT EXISTS shares (
   recipient_id uuid
 );
 
+-- AI Features Tables
+CREATE TABLE IF NOT EXISTS file_tags (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  file_id uuid REFERENCES files(id) ON DELETE CASCADE,
+  tag TEXT NOT NULL,
+  confidence FLOAT DEFAULT 1.0,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS file_summaries (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  file_id uuid REFERENCES files(id) ON DELETE CASCADE,
+  summary TEXT,
+  language TEXT DEFAULT 'en',
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS file_analytics (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  file_id uuid REFERENCES files(id) ON DELETE CASCADE,
+  view_count INTEGER DEFAULT 0,
+  download_count INTEGER DEFAULT 0,
+  last_accessed TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Advanced Collaboration Tables
+CREATE TABLE IF NOT EXISTS chat_message_reactions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  message_id uuid REFERENCES chat_messages(id) ON DELETE CASCADE,
+  user_id uuid REFERENCES auth.users(id),
+  reaction TEXT NOT NULL, -- emoji or reaction type
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(message_id, user_id, reaction)
+);
+
+CREATE TABLE IF NOT EXISTS chat_message_replies (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  message_id uuid REFERENCES chat_messages(id) ON DELETE CASCADE, -- the message being replied to
+  reply_message_id uuid REFERENCES chat_messages(id) ON DELETE CASCADE, -- the reply message
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS chat_message_edits (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  message_id uuid REFERENCES chat_messages(id) ON DELETE CASCADE,
+  original_text TEXT NOT NULL,
+  edited_text TEXT NOT NULL,
+  edited_at TIMESTAMP DEFAULT NOW(),
+  edited_by uuid REFERENCES auth.users(id)
+);
+
+-- Security & Privacy Tables
+CREATE TABLE IF NOT EXISTS file_permissions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  file_id uuid REFERENCES files(id) ON DELETE CASCADE,
+  granted_to_uuid uuid REFERENCES auth.users(id),
+  permission_type TEXT NOT NULL, -- 'view', 'comment', 'download', 'share'
+  granted_by uuid REFERENCES auth.users(id),
+  granted_at TIMESTAMP DEFAULT NOW(),
+  expires_at TIMESTAMP,
+  UNIQUE(file_id, granted_to_uuid, permission_type)
+);
+
+CREATE TABLE IF NOT EXISTS audit_log (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id uuid REFERENCES auth.users(id),
+  action TEXT NOT NULL, -- 'upload', 'delete', 'share', 'login', etc.
+  resource_type TEXT, -- 'file', 'user', 'chat_message', etc.
+  resource_id uuid,
+  details JSONB,
+  ip_address INET,
+  user_agent TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS data_retention_policies (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  resource_type TEXT NOT NULL, -- 'file', 'chat_message', 'notification', etc.
+  max_age_days INTEGER NOT NULL,
+  action TEXT NOT NULL, -- 'delete', 'archive'
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS encryption_keys (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  key_name TEXT NOT NULL,
+  key_data TEXT NOT NULL, -- In real implementation, this would be encrypted
+  created_at TIMESTAMP DEFAULT NOW(),
+  is_active BOOLEAN DEFAULT true
+);
+
+-- Enable Row Level Security for new tables
+ALTER TABLE file_tags ENABLE ROW LEVEL SECURITY;
+ALTER TABLE file_summaries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE file_analytics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_message_reactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_message_replies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_message_edits ENABLE ROW LEVEL SECURITY;
+ALTER TABLE file_permissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE audit_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE data_retention_policies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE encryption_keys ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Enable all for file_tags" ON file_tags FOR ALL USING (true);
+CREATE POLICY "Enable all for file_summaries" ON file_summaries FOR ALL USING (true);
+CREATE POLICY "Enable all for file_analytics" ON file_analytics FOR ALL USING (true);
+CREATE POLICY "Enable all for chat_message_reactions" ON chat_message_reactions FOR ALL USING (true);
+CREATE POLICY "Enable all for chat_message_replies" ON chat_message_replies FOR ALL USING (true);
+CREATE POLICY "Enable all for chat_message_edits" ON chat_message_edits FOR ALL USING (true);
+CREATE POLICY "Enable all for file_permissions" ON file_permissions FOR ALL USING (true);
+CREATE POLICY "Enable all for audit_log" ON audit_log FOR ALL USING (true);
+CREATE POLICY "Enable all for data_retention_policies" ON data_retention_policies FOR ALL USING (true);
+CREATE POLICY "Enable all for encryption_keys" ON encryption_keys FOR ALL USING (true);
+
 -- Create notifications table for real-time notifications
 CREATE TABLE IF NOT EXISTS notifications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

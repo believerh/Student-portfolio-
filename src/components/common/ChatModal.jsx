@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Send, Mic, MicOff, Users, User, MessageCircle, Volume2, Trash2 } from 'lucide-react';
+import { X, Send, Mic, MicOff, Users, User, MessageCircle, Volume2, Trash2, MessageSquare, Smile, Edit2, Repeat } from 'lucide-react';
 
 const ChatModal = ({
   showChat,
@@ -14,7 +14,8 @@ const ChatModal = ({
   handleSendAudio,
   handleDeleteMessage,
   isConnected,
-  supabase
+  supabase,
+  showNotification
 }) => {
   const [message, setMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -320,43 +321,89 @@ const ChatModal = ({
                       </div>
                     )}
                     
-                    <div className={`p-2 sm:p-3 rounded-2xl ${
-                      isMyMessage 
-                        ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-br-md' 
-                        : darkMode 
-                          ? 'bg-gray-700 text-gray-200 rounded-bl-md' 
-                          : 'bg-gray-100 text-gray-800 rounded-bl-md'
-                    }`}>
-                      {msg.message_type === 'audio' ? (
-                        <div className="flex items-center gap-2 sm:gap-3">
-                          <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                          <audio 
-                            src={msg.audio_data} 
-                            controls 
-                            className="h-6 sm:h-8 w-24 sm:w-32"
-                          />
-                        </div>
-                      ) : (
-                        <p className="text-xs sm:text-sm">{msg.message}</p>
-                      )}
-                      
-                      <div className={`text-[10px] sm:text-xs mt-1 flex items-center gap-1 sm:gap-2 ${isMyMessage ? 'text-white/70' : 'text-gray-400'}`}>
-                        {formatTime(msg.created_at)}
-                        {isMyMessage && (
-                          <button
-                            onClick={() => handleDeleteMessage(msg.id)}
-                            className="hover:text-red-300"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          )}
+                 <div className={`p-2 sm:p-3 rounded-2xl ${
+                   isMyMessage 
+                     ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-br-md' 
+                     : darkMode 
+                       ? 'bg-gray-700 text-gray-200 rounded-bl-md' 
+                       : 'bg-gray-100 text-gray-800 rounded-bl-md'
+                 }`}>
+                   {msg.message_type === 'audio' ? (
+                     <div className="flex items-center gap-2 sm:gap-3">
+                       <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                       <audio 
+                         src={msg.audio_data} 
+                         controls 
+                         className="h-6 sm:h-8 w-24 sm:w-32"
+                       />
+                     </div>
+                   ) : (
+                     <p className="text-xs sm:text-sm">{msg.message}</p>
+                   )}
+                   
+                   {/* Message Actions */}
+                   <div className="flex items-center gap-1 mt-1 text-xs sm:text-sm">
+                     {/* Reply Button */}
+                     <button
+                       onClick={() => {
+                         // Would open reply input in a real implementation
+                         showNotification('Reply feature coming soon!');
+                       }}
+                       className="hover:text-indigo-300 dark:hover:text-gray-200"
+                     >
+                       <MessageSquare className="w-3 h-3" />
+                     </button>
+                     
+                     {/* Edit Button (only for own messages) */}
+                     {isMyMessage && (
+                       <button
+                         onClick={() => {
+                           // Would open edit input in a real implementation
+                           showNotification('Edit feature coming soon!');
+                         }}
+                         className="hover:text-indigo-300 dark:hover:text-gray-200"
+                       >
+                         <Edit2 className="w-3 h-3" />
+                       </button>
+                     )}
+                     
+                     {/* Reaction Button */}
+                     <button
+                       onClick={() => {
+                         // Would open reaction picker in a real implementation
+                         showNotification('Reactions feature coming soon!');
+                       }}
+                       className="hover:text-indigo-300 dark:hover:text-gray-200"
+                     >
+                       <Smile className="w-3 h-3" />
+                     </button>
+                     
+                     {/* Reaction Counts (would be populated from database) */}
+                     <span className="ml-1 text-indigo-300 dark:text-gray-200">
+                       {/* Would show actual reaction counts */}
+                       {(msg.reactions || []).length > 0 && (
+                         <span className="ml-1">{msg.reactions.length}</span>
+                       )}
+                     </span>
+                     
+                     <div className={`text-[10px] sm:text-xs mt-1 flex items-center gap-1 sm:gap-2 ${isMyMessage ? 'text-white/70' : 'text-gray-400'}`}>
+                       {formatTime(msg.created_at)}
+                       {isMyMessage && (
+                         <button
+                           onClick={() => handleDeleteMessage(msg.id)}
+                           className="hover:text-red-300"
+                         >
+                           <Trash2 className="w-3 h-3" />
+                         </button>
+                       )}
+                     </div>
+                   </div>
+                 </div>
+               </div>
+             </div>
+           );
+         })
+       )}
           <div ref={messagesEndRef} />
         </div>
 

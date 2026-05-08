@@ -36,35 +36,70 @@ const AdminDashboard = ({
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteForm, setInviteForm] = useState({ email: '', role: 'student' });
   const [inviting, setInviting] = useState(false);
-  const [activeTab, setActiveTab] = useState('users');
+   const [activeTab, setActiveTab] = useState('users');
 
-  const unreadNotifications = notifications.filter(n => n.userId === currentUser?.id && !n.read).length;
-  const chatNotifications = notifications.filter(n => n.userId === currentUser?.id && n.type === 'chat' && !n.read).length;
+   const unreadNotifications = notifications.filter(n => n.userId === currentUser?.id && !n.read).length;
+   const chatNotifications = notifications.filter(n => n.userId === currentUser?.id && n.type === 'chat' && !n.read).length;
 
-  // Get all files from all students
-  const allFiles = Object.values(files).flat();
-  
-  // Filter files by type
-  const videoFiles = allFiles.filter(f => f.type === 'video' || f.mime_type?.startsWith('video/'));
-  const imageFiles = allFiles.filter(f => f.type === 'image' || f.mime_type?.startsWith('image/'));
-  const textFiles = allFiles.filter(f => f.type === 'text' || f.mime_type?.startsWith('text/') || f.mime_type?.includes('pdf') || f.mime_type?.includes('document'));
-  const audioFiles = allFiles.filter(f => f.type === 'audio' || f.mime_type?.startsWith('audio/'));
+   // Get all files from all students
+   const allFiles = Object.values(files).flat();
+   
+   // Filter files by type
+   const videoFiles = allFiles.filter(f => f.type === 'video' || f.mime_type?.startsWith('video/'));
+   const imageFiles = allFiles.filter(f => f.type === 'image' || f.mime_type?.startsWith('image/'));
+   const textFiles = allFiles.filter(f => f.type === 'text' || f.mime_type?.startsWith('text/') || f.mime_type?.includes('pdf') || f.mime_type?.includes('document'));
+   const audioFiles = allFiles.filter(f => f.type === 'audio' || f.mime_type?.startsWith('audio/'));
 
-  const getFilesByType = () => {
-    switch (viewTab) {
-      case 'video': return videoFiles;
-      case 'image': return imageFiles;
-      case 'text': return textFiles;
-      case 'audio': return audioFiles;
-      default: return allFiles;
-    }
-  };
+   const getFilesByType = () => {
+     switch (viewTab) {
+       case 'video': return videoFiles;
+       case 'image': return imageFiles;
+       case 'text': return textFiles;
+       case 'audio': return audioFiles;
+       default: return allFiles;
+     }
+   };
 
-  const displayedFiles = getFilesByType();
+   const displayedFiles = getFilesByType();
 
-  const totalFiles = Object.values(files).flat().length;
+   const totalFiles = Object.values(files).flat().length;
+   
+   // Analytics data (would come from file_analytics table in real implementation)
+   const totalViews = allFiles.reduce((sum, file) => sum + (file.view_count || 0), 0);
+   
+   // Top AI tags (simplified implementation)
+   const allTags = allFiles.flatMap(file => file.tags || []);
+   const tagCounts = {};
+   allTags.forEach(tag => {
+     tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+   });
+   const topTags = Object.entries(tagCounts)
+     .sort(([,a], [,b]) => b - a)
+     .slice(0, 10)
+     .map(([tag]) => tag);
+   
+   // Recent activity (simplified)
+   const recentActivity = [
+     { 
+       icon: <Upload className="w-4 h-4" />, 
+       text: 'File Uploaded', 
+       time: '2 min ago', 
+       count: '5' 
+     },
+     { 
+       icon: <MessageSquare className="w-4 h-4" />, 
+       text: 'New Comment', 
+       time: '10 min ago', 
+       count: '3' 
+     },
+     { 
+       icon: <Heart className="w-4 h-4" />, 
+       text: 'File Liked', 
+       time: '15 min ago', 
+       count: '8' 
+   }];
 
-  const handleInvite = async () => {
+   const handleInvite = async () => {
     if (!inviteForm.email) return;
     setInviting(true);
     const success = await handleInviteUser(inviteForm.email, inviteForm.role);
@@ -236,21 +271,266 @@ const AdminDashboard = ({
             </div>
           </div>
 
-          {/* Main Content */}
-          <div className="lg:col-span-3 bg-gray-900/60 border border-cyan-500/30 p-6">
-            {activeTab === 'users' && (
-              <>
-                <div className="flex justify-between items-center mb-6 pb-4 border-b border-cyan-500/30">
-                  <h2 className="text-xl font-bold text-cyan-400">{'//'} USER_DATABASE_</h2>
-                  <div className="flex items-center gap-3">
-                    <span className="text-gray-500 text-sm">STUDENT_SIGNUP:</span>
-                    <button
-                      onClick={toggleSignup}
-                      className={`w-12 h-6 rounded-full border transition-all ${signupEnabled ? 'bg-green-500/20 border-green-500' : 'bg-red-500/20 border-red-500'}`}
-                    >
-                      <div className={`w-4 h-4 rounded-full transition-all ${signupEnabled ? 'bg-green-400 translate-x-6' : 'bg-red-400 translate-x-0'}`}></div>
-                    </button>
+           {/* Main Content */}
+           <div className="lg:col-span-3 bg-gray-900/60 border border-cyan-500/30 p-6">
+             {activeTab === 'users' && (
+               <>
+                 <div className="flex justify-between items-center mb-6 pb-4 border-b border-cyan-500/30">
+                   <h2 className="text-xl font-bold text-cyan-400">{'//'} USER_DATABASE_</h2>
+                   <div className="flex items-center gap-3">
+                     <span className="text-gray-500 text-sm">STUDENT_SIGNUP:</span>
+                     <button
+                       onClick={toggleSignup}
+                       className={`w-12 h-6 rounded-full border transition-all ${signupEnabled ? 'bg-green-500/20 border-green-500' : 'bg-red-500/20 border-red-500'}`}
+                     >
+                       <div className={`w-5 h-5 rounded-full transition-all ${signupEnabled ? 'bg-green-400 translate-x-7' : 'bg-red-400 translate-x-0'}`}></div>
+                     </button>
+                   </div>
+                 </div>
+                 
+                 {/* User Stats */}
+                 <div className="grid grid-cols-2 gap-4 mb-6">
+                   <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+                     <p className="text-sm text-gray-400">TOTAL_STUDENTS</p>
+                     <p className="text-2xl font-bold text-cyan-400">{students.length}</p>
+                   </div>
+                   <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+                     <p className="text-sm text-gray-400">TOTAL_TEACHERS</p>
+                     <p className="text-2xl font-bold text-cyan-400">{teachers.length}</p>
+                   </div>
+                 </div>
+                 
+                 {/* Student List */}
+                 <div className="space-y-4">
+                   {students.length === 0 ? (
+                     <div className="text-center py-8">
+                       <User className="w-12 h-12 mx-auto mb-4 text-gray-600" />
+                       <p className="text-gray-500">No students registered</p>
+                     </div>
+                   ) : (
+                     <>
+                       {students.map((student, index) => (
+                         <div key={student.id} className="flex items-center justify-between p-3 bg-gray-800/30 rounded-lg border border-gray-700/50">
+                           <div className="flex items-center gap-3">
+                             <div className={`w-8 h-8 flex items-center justify-center bg-cyan-500/20 text-cyan-400 rounded-full`}>
+                               <User className="w-4 h-4" />
+                             </div>
+                             <div>
+                               <p className="text-sm font-medium text-white">{student.name}</p>
+                               <p className="text-xs text-gray-400">{student.email}</p>
+                             </div>
+                           </div>
+                           <button
+                             onClick={() => handleDeleteStudent(student.id)}
+                             className="text-red-400 hover:text-red-200"
+                           >
+                             <Trash2 className="w-4 h-4" />
+                           </button>
+                         </div>
+                       ))}
+                     </>
+                   )}
+                 </div>
+               </>
+             )}
+             {activeTab === 'files' && (
+               <div>
+                 <h2 className="text-xl font-bold text-cyan-400 mb-6 pb-4 border-b border-cyan-500/30">{'//'} FILE_DATABASE_</h2>
+                 
+                 {/* File Type Tabs */}
+                 <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+                   {[
+                     { tab: 'all', icon: HardDrive, label: 'All Files', count: allFiles.length },
+                     { tab: 'video', icon: Video, label: 'Videos', count: videoFiles.length },
+                     { tab: 'image', icon: Image, label: 'Images', count: imageFiles.length },
+                     { tab: 'text', icon: FileText, label: 'Documents', count: textFiles.length },
+                     { tab: 'audio', icon: Music, label: 'Audio', count: audioFiles.length }
+                   ].map(({ tab, icon: Icon, label, count }) => (
+                     <button
+                       key={tab}
+                       onClick={() => setViewTab(tab)}
+                       className={`px-4 py-2 rounded-lg whitespace-nowrap transition-all duration-300 ${
+                         viewTab === tab
+                           ? 'bg-cyan-500/20 border border-cyan-500 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.3)]'
+                           : 'bg-gray-900/50 border border-gray-700 text-gray-400 hover:border-cyan-500/50'
+                       }`}
+                     >
+                       <Icon className="w-4 h-4 inline mr-2" />
+                       {label} ({count})
+                     </button>
+                   ))}
+                 </div>
+ 
+                 {/* Files List */}
+                 <div className="space-y-3">
+                   {displayedFiles.length === 0 ? (
+                     <div className="text-center py-12">
+                       <HardDrive className="w-12 h-12 mx-auto mb-4 text-gray-600" />
+                       <p className="text-gray-500">No files found</p>
+                     </div>
+                   ) : (
+                     displayedFiles.map((file, index) => (
+                       <FileViewer
+                         key={file.id}
+                         file={file}
+                         canDelete={false}
+                         onDelete={() => {}}
+                         darkMode={darkMode}
+                         comments={comments}
+                         likes={likes}
+                         currentUser={currentUser}
+                         handleLikeFile={handleLikeFile}
+                         handleAddComment={handleAddComment}
+                         setSelectedFileForShare={setSelectedFileForShare}
+                         setShowShareModal={setShowShareModal}
+                       />
+                     ))
+              )}
+            </div>
+             )}
+             {activeTab === 'analytics' && (
+               <div>
+                 <h2 className="text-xl font-bold text-cyan-400 mb-6 pb-4 border-b border-cyan-500/30">{'//'} ANALYTICS_DASHBOARD_</h2>
+                 
+                 {/* Analytics Stats */}
+                 <div className="grid grid-cols-2 gap-4 mb-6">
+                   <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+                     <p className="text-sm text-gray-400">TOTAL_FILES</p>
+                     <p className="text-2xl font-bold text-cyan-400">{allFiles.length}</p>
+                   </div>
+                   <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+                     <p className="text-sm text-gray-400">TOTAL_VIEWS</p>
+                     <p className="text-2xl font-bold text-cyan-400">{totalViews}</p>
+                   </div>
+                 </div>
+                 
+                 {/* File Type Distribution */}
+                 <div className="mb-6">
+                   <p className="text-sm font-medium text-cyan-400 mb-2">FILE_TYPE_DISTRIBUTION</p>
+                   <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+                     <div className="flex justify-between text-sm">
+                       <span>Documents:</span>
+                       <span className="font-mono">{textFiles.length} ({(textFiles.length / allFiles.length * 100 || 0).toFixed(1)}%)</span>
+                     </div>
+                     <div className="flex justify-between text-sm">
+                       <span>Images:</span>
+                       <span className="font-mono">{imageFiles.length} ({(imageFiles.length / allFiles.length * 100 || 0).toFixed(1)}%)</span>
+                     </div>
+                     <div className="flex justify-between text-sm">
+                       <span>Videos:</span>
+                       <span className="font-mono">{videoFiles.length} ({(videoFiles.length / allFiles.length * 100 || 0).toFixed(1)}%)</span>
+                     </div>
+                     <div className="flex justify-between text-sm">
+                       <span>Audio:</span>
+                       <span className="font-mono">{audioFiles.length} ({(audioFiles.length / allFiles.length * 100 || 0).toFixed(1)}%)</span>
+                     </div>
+                   </div>
+                 </div>
+                 
+                 {/* Top Tags */}
+                 <div className="mb-6">
+                   <p className="text-sm font-medium text-cyan-400 mb-2">TOP_AI_TAGS</p>
+                   <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+                     {topTags.length > 0 ? (
+                       <div className="flex flex-wrap gap-2">
+                         {topTags.map((tag, index) => (
+                           <span key={index} className={`px-2 py-0.5 text-xs bg-cyan-500/20 text-cyan-400 rounded-full`}>
+                             #{tag}
+                           </span>
+                         ))}
+                       </div>
+                     ) : (
+                       <p className="text-gray-500 text-xs">No AI tags generated yet</p>
+                     )}
+                   </div>
+                 </div>
+                 
+                 {/* Recent Activity */}
+                 <div className="mb-6">
+                   <p className="text-sm font-medium text-cyan-400 mb-2">RECENT_ACTIVITY</p>
+                   <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+                     {recentActivity.length > 0 ? (
+                       <div className="space-y-2">
+                         {recentActivity.map((activity, index) => (
+                           <div key={index} className="flex justify-between items-center py-2 border-b border-gray-700/50 last:mb-0">
+                             <div className="flex items-center gap-2">
+                               <div className={`w-6 h-6 flex items-center justify-center bg-cyan-500/20 text-cyan-400 rounded-full`}>
+                                 {activity.icon}
+                               </div>
+                               <div>
+                                 <p className="text-xs font-medium text-white">{activity.text}</p>
+                                 <p className="text-xs text-gray-400">{activity.time}</p>
+                               </div>
+                             </div>
+                             <span className="text-xs text-gray-400">{activity.count}</span>
+                           </div>
+                         ))}
+                       </div>
+                     ) : (
+                        <p className="text-gray-500 text-xs">No recent activity</p>
+                      )}
+                    </div>
                   </div>
+                </div>
+              )}
+                 
+                 {/* Recent Activity */}
+                 <div className="mb-6">
+                   <p className="text-sm font-medium text-cyan-400 mb-2">RECENT_ACTIVITY</p>
+                   <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+                     {recentActivity.length > 0 ? (
+                       <div className="space-y-2">
+                         {recentActivity.map((activity, index) => (
+                           <div key={index} className="flex justify-between items-center py-2 border-b border-gray-700/50 last:mb-0">
+                             <div className="flex items-center gap-2">
+                               <div className={`w-6 h-6 flex items-center justify-center bg-cyan-500/20 text-cyan-400 rounded-full`}>
+                                 {activity.icon}
+                               </div>
+                               <div>
+                                 <p className="text-xs font-medium text-white">{activity.text}</p>
+                                 <p className="text-xs text-gray-400">{activity.time}</p>
+                               </div>
+                             </div>
+                             <span className="text-xs text-gray-400">{activity.count}</span>
+                           </div>
+                         ))}
+                       </div>
+                     ) : (
+                       <p className="text-gray-500 text-xs">No recent activity</p>
+                     )}
+                   </div>
+                 </div>
+               </div>
+             )}
+             {activeTab === 'settings' && (
+               <div>
+                 <h2 className="text-xl font-bold text-cyan-400 mb-6 pb-4 border-b border-cyan-500/30">{'//'} SYSTEM_CONFIG_</h2>
+                 <div className="space-y-6">
+                   <div className="flex items-center justify-between p-4 bg-gray-950/30 border border-gray-800">
+                     <div>
+                       <p className="text-cyan-400 font-bold">Student Registration</p>
+                       <p className="text-sm text-gray-500">Allow new students to register</p>
+                     </div>
+                     <button
+                       onClick={toggleSignup}
+                       className={`w-14 h-7 rounded-full border transition-all ${signupEnabled ? 'bg-green-500/20 border-green-500' : 'bg-red-500/20 border-red-500'}`}
+                     >
+                       <div className={`w-5 h-5 rounded-full transition-all ${signupEnabled ? 'bg-green-400 translate-x-7' : 'bg-red-400 translate-x-0'}`}></div>
+                     </button>
+                   </div>
+                   <div className="flex items-center justify-between p-4 bg-gray-950/30 border border-gray-800">
+                     <div>
+                       <p className="text-cyan-400 font-bold">Database Connection</p>
+                       <p className="text-sm text-gray-500">{isConnected ? 'Connected to Supabase' : 'Not connected'}</p>
+                     </div>
+                     <span className={`px-3 py-1 text-xs rounded ${isConnected ? 'bg-green-500/20 text-green-400 border border-green-500' : 'bg-red-500/20 text-red-400 border border-red-500'}`}>
+                       {isConnected ? '● CONNECTED' : '● DISCONNECTED'}
+                     </span>
+                   </div>
+                 </div>
+               </div>
+             )}
+           </div>
                 </div>
 
                 {/* Students Section */}
@@ -302,17 +582,50 @@ const AdminDashboard = ({
                   </div>
                 </div>
 
-                {/* Teachers Section */}
-                <div>
-                  <h3 className="text-purple-400 text-sm uppercase tracking-wider mb-4 flex items-center gap-2">
-                    <Shield className="w-4 h-4" /> TEACHERS [{teachers.length}]
-                  </h3>
-                  <div className="space-y-3">
-                    {teachers.length === 0 ? (
-                      <div className="text-center py-8 text-gray-500 border border-dashed border-gray-700">
-                        <User className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                        No teachers in system
-                      </div>
+                 {/* Teachers Section */}
+                 <div>
+                   <h3 className="text-purple-400 text-sm uppercase tracking-wider mb-4 flex items-center gap-2">
+                     <Shield className="w-4 h-4" /> TEACHERS [{teachers.length}]
+                   </h3>
+                   <div className="space-y-3">
+                     {teachers.length === 0 ? (
+                       <div className="text-center py-8 text-gray-500 border border-dashed border-gray-700">
+                         <User className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                         No teachers in system
+                       </div>
+                     ) : (
+                       teachers.map((teacher, index) => (
+                         <div
+                           key={teacher.id}
+                           className="flex items-center justify-between p-4 bg-gray-950/50 border border-gray-800 hover:border-purple-500/50 transition-all"
+                         >
+                           <div className="flex items-center gap-4">
+                             <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded flex items-center justify-center text-white font-bold">
+                               {(teacher.name || '?').charAt(0).toUpperCase()}
+                             </div>
+                             <div>
+                               <p className="font-bold text-purple-400">{teacher.name}</p>
+                               <p className="text-sm text-gray-500">{teacher.email}</p>
+                             </div>
+                           </div>
+                           <div className="flex items-center gap-3">
+                             <span className="px-3 py-1 text-xs bg-purple-500/20 border border-purple-500/30 text-purple-400 rounded">
+                               TEACHER
+                             </span>
+                             <button
+                               onClick={() => handleDeleteTeacher(teacher.id)}
+                               className="p-2 border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-all"
+                             >
+                               <Trash2 className="w-4 h-4" />
+                             </button>
+                           </div>
+                         </div>
+                       ))
+                     )}
+                   </div>
+                 </div>
+               </div>
+             )}
                     ) : (
                       teachers.map((teacher, index) => (
                         <div
