@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { User, Users, LogOut, Trash2, UserPlus, Settings, Bell, Moon, Sun, Video, Image, FileText, Music, Mail, X, Shield, HardDrive, MessageCircle, Upload, MessageSquare, Heart } from 'lucide-react';
 import FileViewer from './FileViewer';
+import SearchBar from './common/SearchBar';
+import SearchResult from './common/SearchResult';
 
 const AdminDashboard = ({
   currentUser,
@@ -30,6 +32,9 @@ const AdminDashboard = ({
   setShowShareModal,
   showChat,
   setShowChat,
+  handleSearch,
+  searchResults,
+  searchState,
   }) => {
   const [viewTab, setViewTab] = useState('all');
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -172,6 +177,14 @@ const AdminDashboard = ({
       </nav>
 
       <div className="container mx-auto p-6">
+        {/* Full-Text Search */}
+        <SearchBar onSearch={handleSearch} className="mb-6" filters={{ types: true, dateRange: true, role: true }} />
+        <SearchResult
+          results={searchResults}
+          searchState={searchState}
+          onClose={() => handleSearch({ query: '', type: 'all', dateFrom: '', dateTo: '', role: 'all' })}
+        />
+
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-gray-900/60 border border-cyan-500/30 p-5 relative overflow-hidden group hover:border-cyan-400 transition-all">

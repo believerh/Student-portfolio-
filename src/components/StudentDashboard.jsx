@@ -1,6 +1,8 @@
 import React, { useState, useMemo, memo } from 'react';
 import { Upload, FileText, Image, Video, Music, User, LogOut, Eye, Link2, Bell, Moon, Sun, Share2, Inbox, MessageCircle } from 'lucide-react';
 import FileViewer from './FileViewer';
+import SearchBar from './common/SearchBar';
+import SearchResult from './common/SearchResult';
 
 const StudentDashboard = (props) => {
   const {
@@ -24,6 +26,9 @@ const StudentDashboard = (props) => {
     students,
     showChat,
     setShowChat,
+    handleSearch,
+    searchResults,
+    searchState,
   } = props;
 
   // eslint-disable-next-line no-unused-vars
@@ -162,6 +167,14 @@ const StudentDashboard = (props) => {
           </div>
           <code className={`${darkMode ? 'bg-indigo-900/30 text-indigo-300' : 'bg-indigo-50 text-indigo-700'} px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm block mt-1 overflow-x-auto whitespace-nowrap`}>{currentUser?.dashboard_link || currentUser?.dashboardLink || ''}</code>
         </div>
+
+        {/* Full-Text Search */}
+        <SearchBar onSearch={handleSearch} className="mb-4 sm:mb-6" />
+        <SearchResult
+          results={searchResults}
+          searchState={searchState}
+          onClose={() => handleSearch({ query: '', type: 'all', dateFrom: '', dateTo: '', role: 'all' })}
+        />
 
         <div className="flex gap-2 sm:gap-4 mb-4 sm:mb-6 flex-wrap">
           <button

@@ -9,6 +9,7 @@ import SendFileModal from './components/common/SendFileModal';
 import AddStudentModal from './components/common/AddStudentModal';
 import AddTeacherModal from './components/common/AddTeacherModal';
 import ChatModal from './components/common/ChatModal';
+import { performSearch } from './utils/searchUtils';
 import { API_CONFIG } from './utils/apiConfig';
 import { initStorageClient, uploadFileToStorage, deleteFileFromStorage, getBucketForType } from './utils/storageUtils';
 import { generateFileTags, extractTextContent, generateSummary } from './utils/aiUtils';
@@ -62,6 +63,9 @@ const App = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [supabase, setSupabase] = useState(null);
+  // Search state
+  const [searchState, setSearchState] = useState({ query: '', type: 'all', dateFrom: '', dateTo: '', role: 'all' });
+  const [searchResults, setSearchResults] = useState({ files: [], users: [], comments: [], active: false });
   const [showUnverifiedEmailNotification, setShowUnverifiedEmailNotification] = useState(false);
   const [unverifiedEmail, setUnverifiedEmail] = useState('');
   // configError state removed — setup form shown instead of error screen
@@ -622,6 +626,13 @@ const App = () => {
     setDarkMode(newMode);
     localStorage.setItem('darkMode', newMode.toString());
   };
+
+  // Full-text search handler
+  const handleSearch = useCallback((filters) => {
+    setSearchState(filters);
+    const results = performSearch(filters.query || '', filters, { files, students, teachers, comments });
+    setSearchResults(results);
+  }, [files, students, teachers, comments]);
 
   const sendEmailNotification = (to, subject, message) => {
     console.log(`Email sent to ${to}: ${subject} - ${message}`);
@@ -1931,6 +1942,9 @@ const App = () => {
             students={students}
             showChat={showChat}
             setShowChat={setShowChat}
+            handleSearch={handleSearch}
+            searchResults={searchResults}
+            searchState={searchState}
           />
         </Suspense>
       )}
@@ -1957,6 +1971,9 @@ const App = () => {
             handleSendFileToStudents={handleSendFileToStudents}
             showChat={showChat}
             setShowChat={setShowChat}
+            handleSearch={handleSearch}
+            searchResults={searchResults}
+            searchState={searchState}
           />
         </Suspense>
       )}
@@ -1990,6 +2007,9 @@ const App = () => {
             setShowShareModal={setShowShareModal}
             showChat={showChat}
             setShowChat={setShowChat}
+            handleSearch={handleSearch}
+            searchResults={searchResults}
+            searchState={searchState}
           />
         </Suspense>
       )}
