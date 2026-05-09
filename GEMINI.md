@@ -185,6 +185,32 @@ CREATE POLICY "Enable all for chat_messages" ON chat_messages FOR ALL USING (tru
 -- Enable Realtime
 ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
 ALTER PUBLICATION supabase_realtime ADD TABLE chat_messages;
+
+-- File Versioning Table (for version history/restore)
+CREATE TABLE file_versions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  file_id uuid REFERENCES files(id) ON DELETE CASCADE NOT NULL,
+  version_number integer NOT NULL,
+  storage_path text NOT NULL,
+  data text NOT NULL,
+  size text NOT NULL,
+  mime_type text,
+  created_by uuid REFERENCES users(id) NOT NULL,
+  created_at timestamptz DEFAULT timezone('utc'::text, now()) NOT NULL,
+  notes text,
+  UNIQUE(file_id, version_number)
+);
+
+-- Enable pgvector for semantic search
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- File Embeddings Table (AI semantic search)
+CREATE TABLE file_embeddings (
+  file_id uuid PRIMARY KEY REFERENCES files(id) ON DELETE CASCADE,
+  embedding vector(1536),
+  model text NOT NULL DEFAULT 'text-embedding-3-small',
+  created_at timestamptz DEFAULT now()
+);
 ```
 
 ---
