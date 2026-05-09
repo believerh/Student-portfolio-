@@ -202,7 +202,7 @@
 | 1.2 Analytics Dashboard | ✅ | Done | Recharts charts: bar, pie, line + stat cards |
 | 1.3 Enhanced Notifications | ✅ | Done | Multi-type toasts, mark-all-read, clear-all, DB sync |
 | 1.4 Drag & Drop Upload Zone | ✅ | Done | Drag-and-drop file upload, multi-file queue, per-file progress, validation |
-| **Mobile Responsiveness** | ✅ | Done | Tailwind responsive classes across all dashboards: grid, padding, text sizes, touch targets |
+| 1.6 Mobile Responsiveness | ✅ | Done | Tailwind responsive classes across all dashboards: grid, padding, text sizes, touch targets |
 | 1.5 Accessibility (WCAG 2.1 AA) | ✅ | Done | Aria labels, keyboard navigation (Escape close, Enter submit), focus trap, skip-link, screen reader announcements, color contrast audit |
 | 2.1 AI Content Analysis | ✅ | Done | Auto-tagging and summarization via Supabase Edge Function (OpenAI); fallback heuristics if undeployed |
 | 2.2 Video/Audio Chat | ⏳ | — | |
