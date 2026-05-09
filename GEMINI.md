@@ -254,7 +254,15 @@ npm run build
 
 ## Recent Updates
 
-### Version 1.2.2 (Latest - 2026-04-12)
+### Version 1.2.3 (Latest - 2026-05-09)
+- Added **Mobile Responsiveness** - Full mobile optimization across all dashboards
+  - AdminDashboard: Responsive grid layouts (`grid-cols-2 lg:grid-cols-4`), stacked sidebar on mobile (`order-2 lg:order-1`), abbreviated tab labels (`hidden sm:inline`)
+  - TeacherDashboard: Responsive navigation, student card layouts, file type tabs with mobile abbreviations (Vid/Img/Doc/Aud)
+  - StudentDashboard: Already had responsive patterns
+  - All dashboards now support 44px minimum touch targets, text truncation (`truncate`), horizontal scroll tabs
+- Fixed **Vercel Deployment Failure** caused by CI lint rules (`process.env.CI=true`)
+
+### Version 1.2.2 (2026-04-12)
 - Fixed **Vercel Deployment Failure** caused by CI lint rules (`process.env.CI=true`)
 - Removed unused variable in `src/App.jsx` (`const row = payload.new || payload.old;`) that triggered `no-unused-vars`
 - Confirmed production build passes locally after fix (`npm run build`)
