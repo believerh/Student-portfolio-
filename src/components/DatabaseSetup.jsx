@@ -361,6 +361,38 @@ CREATE POLICY "Enable all for likes" ON likes FOR ALL USING (true);
 
 ALTER TABLE shares ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Enable all for shares" ON shares FOR ALL USING (true);
+
+-- File Versioning Table (for version history/restore)
+CREATE TABLE IF NOT EXISTS file_versions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  file_id uuid REFERENCES files(id) ON DELETE CASCADE NOT NULL,
+  version_number integer NOT NULL,
+  storage_path text NOT NULL,
+  data text NOT NULL,
+  size text NOT NULL,
+  mime_type text,
+  created_by uuid REFERENCES auth.users(id) NOT NULL,
+  created_at timestamptz DEFAULT timezone('utc'::text, now()) NOT NULL,
+  notes text,
+  UNIQUE(file_id, version_number)
+);
+
+ALTER TABLE file_versions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Authenticated users can read file versions" ON file_versions FOR SELECT USING (auth.role() = 'authenticated');
+
+-- Enable pgvector for semantic search
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- File Embeddings Table (AI semantic search)
+CREATE TABLE IF NOT EXISTS file_embeddings (
+  file_id uuid PRIMARY KEY REFERENCES files(id) ON DELETE CASCADE,
+  embedding vector(1536),
+  model text NOT NULL DEFAULT 'text-embedding-3-small',
+  created_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE file_embeddings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Enable all for file_embeddings" ON file_embeddings FOR ALL USING (true);
 `}
             </pre>
           </div>
