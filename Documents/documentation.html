@@ -634,12 +634,49 @@
 <span class="sql-keyword">CREATE POLICY</span> <span class="sql-string">"Enable all for notifications"</span> <span class="sql-keyword">ON</span> notifications <span class="sql-keyword">FOR ALL USING</span> (<span class="sql-keyword">true</span>);
 <span class="sql-keyword">CREATE POLICY</span> <span class="sql-string">"Enable all for chat_messages"</span> <span class="sql-keyword">ON</span> chat_messages <span class="sql-keyword">FOR ALL USING</span> (<span class="sql-keyword">true</span>);
 
+<span class="sql-comment">-- Enable RLS on new tables</span>
+<span class="sql-keyword">ALTER TABLE</span> file_versions <span class="sql-keyword">ENABLE ROW LEVEL SECURITY</span>;
+<span class="sql-keyword">ALTER TABLE</span> file_embeddings <span class="sql-keyword">ENABLE ROW LEVEL SECURITY</span>;
+
+<span class="sql-comment">-- File Versions Policies</span>
+<span class="sql-keyword">CREATE POLICY</span> <span class="sql-string">"Authenticated users can read file versions"</span> <span class="sql-keyword">ON</span> file_versions <span class="sql-keyword">FOR SELECT</span> <span class="sql-keyword">USING</span> (<span class="sql-keyword">auth.role</span>() = <span class="sql-string">'authenticated'</span>);
+
 <span class="sql-comment">-- Enable Realtime for live updates</span>
 <span class="sql-keyword">ALTER PUBLICATION</span> supabase_realtime <span class="sql-keyword">ADD TABLE</span> notifications;
 <span class="sql-keyword">ALTER PUBLICATION</span> supabase_realtime <span class="sql-keyword">ADD TABLE</span> chat_messages;
 <span class="sql-keyword">ALTER PUBLICATION</span> supabase_realtime <span class="sql-keyword">ADD TABLE</span> files;
 <span class="sql-keyword">ALTER PUBLICATION</span> supabase_realtime <span class="sql-keyword">ADD TABLE</span> students;
-<span class="sql-keyword">ALTER PUBLICATION</span> supabase_realtime <span class="sql-keyword">ADD TABLE</span> teachers;</code></pre>
+<span class="sql-keyword">ALTER PUBLICATION</span> supabase_realtime <span class="sql-keyword">ADD TABLE</span> teachers;
+
+<span class="sql-comment">-- File Versioning Table (for version history/restore)</span>
+<span class="sql-keyword">CREATE TABLE IF NOT EXISTS</span> file_versions (
+  id UUID <span class="sql-keyword">PRIMARY KEY DEFAULT</span> gen_random_uuid(),
+  file_id uuid <span class="sql-keyword">REFERENCES</span> files(id) <span class="sql-keyword">ON DELETE CASCADE</span> <span class="sql-keyword">NOT NULL</span>,
+  version_number integer <span class="sql-keyword">NOT NULL</span>,
+  storage_path text <span class="sql-keyword">NOT NULL</span>,
+  data text <span class="sql-keyword">NOT NULL</span>,
+  size text <span class="sql-keyword">NOT NULL</span>,
+  mime_type text,
+  created_by uuid <span class="sql-keyword">REFERENCES</span> users(id) <span class="sql-keyword">NOT NULL</span>,
+  created_at timestamptz <span class="sql-keyword">DEFAULT</span> timezone(<span class="sql-string">'utc'</span>::text, now()) <span class="sql-keyword">NOT NULL</span>,
+  notes text,
+  <span class="sql-keyword">UNIQUE</span>(file_id, version_number)
+);
+
+<span class="sql-comment">-- Enable pgvector for semantic search</span>
+<span class="sql-keyword">CREATE EXTENSION IF NOT EXISTS</span> vector;
+
+<span class="sql-comment">-- File Embeddings Table (AI semantic search)</span>
+<span class="sql-keyword">CREATE TABLE IF NOT EXISTS</span> file_embeddings (
+  file_id uuid <span class="sql-keyword">PRIMARY KEY REFERENCES</span> files(id) <span class="sql-keyword">ON DELETE CASCADE</span>,
+  embedding vector(1536),
+  model text <span class="sql-keyword">NOT NULL DEFAULT</span> <span class="sql-string">'text-embedding-3-small'</span>,
+  created_at timestamptz <span class="sql-keyword">DEFAULT now</span>()
+);
+
+<span class="sql-comment">-- Index for fast similarity search</span>
+<span class="sql-keyword">CREATE INDEX IF NOT EXISTS</span> file_embeddings_embedding_idx <span class="sql-keyword">ON</span> file_embeddings
+  <span class="sql-keyword">USING</span> ivfflat (embedding vector_cosine_ops) <span class="sql-keyword">WITH</span> (lists = 100);</code></pre>
             </section>
             
             <!-- Setup -->
